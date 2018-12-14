@@ -219,6 +219,7 @@ Example usage::
 .. note::
     Please **DO NOT** add extra keys or delete the existing ones in the ``claims`` dict. If you want to add extra claims to some scopes you can use the ``OIDC_EXTRA_SCOPE_CLAIMS`` setting.
 
+
 OIDC_GRANT_TYPE_PASSWORD_ENABLE
 ===============================
 OPTIONAL. A boolean whether to allow the Resource Owner Password
@@ -235,6 +236,7 @@ Credentials Grant. https://tools.ietf.org/html/rfc6749#section-4.3
     decide what works best for you, so you will have to implement a solution for
     this that suits your needs.
 
+
 OIDC_TEMPLATES
 ==============
 OPTIONAL. A dictionary pointing to templates for authorize and error pages.
@@ -248,6 +250,38 @@ Default is::
 See the :ref:`templates` section.
 
 The templates that are not specified here will use the default ones.
+
+OIDC_CREATE_CODE (Experimental)
+===============================
+
+OPTIONAL. ``str``. A string with the location of your function.
+Allows overriding creation of the `Code` model instance. See the default implementation
+for further information.
+Default is::
+
+    'oidc_provider.lib.utils.token.default_create_code'
+
+
+OIDC_CREATE_TOKEN (Experimental)
+================================
+
+OPTIONAL. ``str``. A string with the location of your function.
+Allows overriding creation of the `Token` model instance. See the default implementation
+for further information.
+Default is::
+
+    'oidc_provider.lib.utils.token.default_create_token'
+
+
+OIDC_UPDATE_OR_CREATE_USER_CONSENT (Experimental)
+=================================================
+
+OPTIONAL. ``str``. A string with the location of your function.
+Allows overriding creation of the `UserConsent` model instance. See the default implementation
+for further information.
+Default is::
+
+    'oidc_provider.lib.utils.authorize.default_update_or_create_user_consent'
 
 OIDC_INTROSPECTION_RESPONSE_SCOPE_ENABLE
 ==========================================
