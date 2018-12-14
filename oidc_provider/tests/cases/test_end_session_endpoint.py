@@ -37,7 +37,7 @@ class EndSessionTestCase(TestCase):
         self.oidc_client.save()
 
         # Create a valid ID Token for the user.
-        token = create_token(self.user, self.oidc_client, [])
+        token = create_token(self.user, self.oidc_client, [], request=None)
         id_token_dic = create_id_token(token=token, user=self.user, aud=self.oidc_client.client_id)
         self.id_token = encode_id_token(id_token_dic, self.oidc_client)
 
