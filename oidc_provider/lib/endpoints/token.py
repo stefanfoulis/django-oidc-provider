@@ -19,12 +19,11 @@ from oidc_provider.lib.utils.token import (
 from oidc_provider.models import (
     Code,
     Token,
-    get_client_model
+    Client,
 )
 from oidc_provider import settings
 
 logger = logging.getLogger(__name__)
-Client = get_client_model()
 
 
 class TokenEndpoint(object):
@@ -152,7 +151,9 @@ class TokenEndpoint(object):
         token = create_token(
             user=self.code.user,
             client=self.code.client,
-            scope=self.code.scope)
+            scope=self.code.scope,
+            request=self.request,
+            code=self.code)
 
         if self.code.is_authentication:
             id_token_dic = create_id_token(
@@ -196,7 +197,8 @@ class TokenEndpoint(object):
         token = create_token(
             user=self.token.user,
             client=self.token.client,
-            scope=scope)
+            scope=scope,
+            request=self.request)
 
         # If the Token has an id_token it's an Authentication request.
         if self.token.id_token:
@@ -235,7 +237,8 @@ class TokenEndpoint(object):
         token = create_token(
             self.user,
             self.client,
-            self.params['scope'].split(' '))
+            self.params['scope'].split(' '),
+            request=self.request)
 
         id_token_dic = create_id_token(
             token=token,
@@ -264,9 +267,8 @@ class TokenEndpoint(object):
         token = create_token(
             user=None,
             client=self.client,
-            scope=self.client.scope)
-
-        token.save()
+            scope=self.client.scope,
+            request=self.request)
 
         return {
             'access_token': token.access_token,

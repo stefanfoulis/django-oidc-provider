@@ -21,15 +21,6 @@ If not specified, it will be automatically generated using ``request.scheme`` an
 
 For example ``http://localhost:8000``.
 
-OIDC_CLIENT_MODEL
-=================
-
-OPTIONAL. ``str``. The client model.
-
-If not specified, the default oidc_provider.Client model is used. This is typically used when
-you need to override the Client model to add custom properties on the class. The custom class
-should override the oidc_provider.AbstractClient model.
-
 OIDC_AFTER_USERLOGIN_HOOK
 =========================
 
@@ -243,3 +234,35 @@ Default is::
 See the :ref:`templates` section.
 
 The templates that are not specified here will use the default ones.
+
+OIDC_CREATE_CODE (Experimental)
+===============================
+
+OPTIONAL. ``str``. A string with the location of your function.
+Allows overriding creation of the `Code` model instance. See the default implementation
+for further information.
+Default is::
+
+    'oidc_provider.lib.utils.token.default_create_code'
+
+
+OIDC_CREATE_TOKEN (Experimental)
+================================
+
+OPTIONAL. ``str``. A string with the location of your function.
+Allows overriding creation of the `Token` model instance. See the default implementation
+for further information.
+Default is::
+
+    'oidc_provider.lib.utils.token.default_create_token'
+
+
+OIDC_UPDATE_OR_CREATE_USER_CONSENT (Experimental)
+=================================================
+
+OPTIONAL. ``str``. A string with the location of your function.
+Allows overriding creation of the `UserConsent` model instance. See the default implementation
+for further information.
+Default is::
+
+    'oidc_provider.lib.utils.authorize.default_update_or_create_user_consent'
