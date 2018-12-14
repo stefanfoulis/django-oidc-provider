@@ -148,6 +148,7 @@ class TokenTestCase(TestCase):
             scope=(scope if scope else TokenTestCase.SCOPE_LIST),
             nonce=FAKE_NONCE,
             is_authentication=True,
+            request=None,
         )
         code.save()
 
@@ -796,6 +797,7 @@ class TokenTestCase(TestCase):
             is_authentication=True,
             code_challenge=FAKE_CODE_CHALLENGE,
             code_challenge_method="S256",
+            request=None,
         )
         code.save()
 
