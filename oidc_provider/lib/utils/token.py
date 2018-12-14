@@ -109,15 +109,28 @@ def create_token(user, client, scope, id_token_dic=None):
     token = Token()
     token.user = user
     token.client = client
-    token.access_token = uuid.uuid4().hex
 
     if id_token_dic is not None:
         token.id_token = id_token_dic
 
-    token.refresh_token = uuid.uuid4().hex
     token.expires_at = timezone.now() + timedelta(
         seconds=settings.get('OIDC_TOKEN_EXPIRE'))
     token.scope = scope
+
+    token.access_token = settings.get('OIDC_ACCESS_TOKEN_GENERATOR', import_str=True)(
+        user=token.user,
+        client=token.client,
+        scope=token.scope,
+        expires_at=token.expires_at,
+    )
+
+    token.refresh_token = settings.get('OIDC_REFRESH_TOKEN_GENERATOR', import_str=True)(
+        user=token.user,
+        client=token.client,
+        scope=token.scope,
+        expires_at=token.expires_at,
+        access_token=token.access_token,
+    )
 
     return token
 
@@ -164,3 +177,11 @@ def get_client_alg_keys(client):
         raise Exception('Unsupported key algorithm.')
 
     return keys
+
+
+def default_access_token_generator(**kwargs):
+    return uuid.uuid4().hex
+
+
+def default_refresh_token_generator(**kwargs):
+    return uuid.uuid4().hex

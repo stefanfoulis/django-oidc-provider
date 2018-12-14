@@ -176,6 +176,22 @@ class DefaultSettings(object):
             'error': 'oidc_provider/error.html'
         }
 
+    @property
+    def OIDC_ACCESS_TOKEN_GENERATOR(self):
+        """
+        OPTIONAL. A string with the location of your function.
+        Used to generate the raw access token.
+        """
+        return 'oidc_provider.lib.utils.token.default_access_token_generator'
+
+    @property
+    def OIDC_REFRESH_TOKEN_GENERATOR(self):
+        """
+        OPTIONAL. A string with the location of your function.
+        Used to generate the raw refresh token.
+        """
+        return 'oidc_provider.lib.utils.token.default_refresh_token_generator'
+
 
 default_settings = DefaultSettings()
 

@@ -243,3 +243,19 @@ Default is::
 See the :ref:`templates` section.
 
 The templates that are not specified here will use the default ones.
+
+OIDC_ACCESS_TOKEN_GENERATOR
+===========================
+
+OPTIONAL. ``str``. A string with the location of your function.
+The function receives ``user``, ``client``, ``scope`` and ``expires_at`.
+Be aware that the value is not allowed to exceed 255 characters because of the database field it is saved in.
+Default is ``oidc_provider.lib.utils.token.default_access_token_generator`` which returns a random uuid.
+
+OIDC_REFRESH_TOKEN_GENERATOR
+============================
+
+OPTIONAL. ``str``. A string with the location of your function.
+The function receives ``user``, ``client``, ``scope``, ``expires_at`` and ``access_token``.
+Be aware that the value is not allowed to exceed 255 characters because of the database field it is saved in.
+Default is ``oidc_provider.lib.utils.token.default_refresh_token_generator`` which returns a random uuid.

@@ -83,6 +83,29 @@ class TokenTest(TestCase):
             'sub': str(self.user.id),
         })
 
+    @override_settings(
+        OIDC_ACCESS_TOKEN_GENERATOR='oidc_provider.tests.app.utils.fake_access_token_generator',
+    )
+    def test_custom_access_token_and_refresh_token_generators(self):
+        """
+        Test custom function for generating OIDC_ACCESS_TOKEN_GENERATOR.
+        """
+        client = create_fake_client("code")
+        token = create_token(self.user, client, [])
+        FAKE_PREFIX = 'FAKE-ACCESS_TOKEN-'
+        self.assertEqual(token.access_token[:len(FAKE_PREFIX)], FAKE_PREFIX)
+
+    @override_settings(
+        OIDC_REFRESH_TOKEN_GENERATOR='oidc_provider.tests.app.utils.fake_refresh_token_generator')
+    def test_custom_access_token_generator(self):
+        """
+        Test custom function for generating OIDC_REFRESH_TOKEN_GENERATOR.
+        """
+        client = create_fake_client("code")
+        token = create_token(self.user, client, [])
+        FAKE_PREFIX = 'FAKE-REFRESH_TOKEN-'
+        self.assertEqual(token.refresh_token[:len(FAKE_PREFIX)], FAKE_PREFIX)
+
 
 class BrowserStateTest(TestCase):
 

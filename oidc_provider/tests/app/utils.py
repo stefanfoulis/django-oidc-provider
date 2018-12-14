@@ -1,5 +1,6 @@
 import random
 import string
+import uuid
 
 import django
 from django.contrib.auth.backends import ModelBackend
@@ -157,6 +158,14 @@ def fake_idtoken_processing_hook4(id_token, user, **kwargs):
 def fake_introspection_processing_hook(response_dict, client, id_token):
     response_dict['test_introspection_processing_hook'] = FAKE_RANDOM_STRING
     return response_dict
+
+
+def fake_access_token_generator(**kwargs):
+    return 'FAKE-ACCESS_TOKEN-{}'.format(uuid.uuid4())
+
+
+def fake_refresh_token_generator(**kwargs):
+    return 'FAKE-REFRESH_TOKEN-{}'.format(uuid.uuid4())
 
 
 class TestAuthBackend:
