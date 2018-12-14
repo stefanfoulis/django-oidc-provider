@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 from hashlib import md5
 from hashlib import sha256
 
@@ -16,13 +15,12 @@ except ImportError:
     from urllib.parse import urlunsplit
 from uuid import uuid4
 
-from django.utils import timezone
-
 from oidc_provider import settings
 from oidc_provider.lib.claims import StandardScopeClaims
 from oidc_provider.lib.errors import AuthorizeError
 from oidc_provider.lib.errors import ClientIdError
 from oidc_provider.lib.errors import RedirectUriError
+from oidc_provider.lib.utils.authorize import update_or_create_user_consent
 from oidc_provider.lib.utils.common import get_browser_state_or_default
 from oidc_provider.lib.utils.token import create_code
 from oidc_provider.lib.utils.token import create_id_token
@@ -146,15 +144,18 @@ class AuthorizeEndpoint(object):
                     is_authentication=self.is_authentication,
                     code_challenge=self.params["code_challenge"],
                     code_challenge_method=self.params["code_challenge_method"],
+                    request=self.request,
                 )
-                code.save()
 
             if self.grant_type == "authorization_code":
                 query_params["code"] = code.code
                 query_params["state"] = self.params["state"] if self.params["state"] else ""
             elif self.grant_type in ["implicit", "hybrid"]:
                 token = create_token(
-                    user=self.request.user, client=self.client, scope=self.params["scope"]
+                    user=self.request.user,
+                    client=self.client,
+                    scope=self.params["scope"],
+                    request=self.request,
                 )
 
                 # Check if response_type must include access_token in the response.
@@ -249,25 +250,12 @@ class AuthorizeEndpoint(object):
 
         Return None.
         """
-        date_given = timezone.now()
-        expires_at = date_given + timedelta(days=settings.get("OIDC_SKIP_CONSENT_EXPIRE"))
-
-        uc, created = UserConsent.objects.get_or_create(
+        update_or_create_user_consent(
             user=self.request.user,
             client=self.client,
-            defaults={
-                "expires_at": expires_at,
-                "date_given": date_given,
-            },
+            scope=self.params["scope"],
+            request=self.request,
         )
-        uc.scope = self.params["scope"]
-
-        # Rewrite expires_at and date_given if object already exists.
-        if not created:
-            uc.expires_at = expires_at
-            uc.date_given = date_given
-
-        uc.save()
 
     def client_has_user_consent(self):
         """

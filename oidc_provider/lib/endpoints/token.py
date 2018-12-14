@@ -148,7 +148,13 @@ class TokenEndpoint(object):
     def create_code_response_dic(self):
         # See https://tools.ietf.org/html/rfc6749#section-4.1
 
-        token = create_token(user=self.code.user, client=self.code.client, scope=self.code.scope)
+        token = create_token(
+            user=self.code.user,
+            client=self.code.client,
+            scope=self.code.scope,
+            request=self.request,
+            code=self.code,
+        )
 
         if self.code.is_authentication:
             id_token_dic = create_id_token(
@@ -189,7 +195,9 @@ class TokenEndpoint(object):
         if unauthorized_scopes:
             raise TokenError("invalid_scope")
 
-        token = create_token(user=self.token.user, client=self.token.client, scope=scope)
+        token = create_token(
+            user=self.token.user, client=self.token.client, scope=scope, request=self.request
+        )
 
         # If the Token has an id_token it's an Authentication request.
         if self.token.id_token:
@@ -225,7 +233,9 @@ class TokenEndpoint(object):
     def create_access_token_response_dic(self):
         # See https://tools.ietf.org/html/rfc6749#section-4.3
 
-        token = create_token(self.user, self.client, self.params["scope"].split(" "))
+        token = create_token(
+            self.user, self.client, self.params["scope"].split(" "), request=self.request
+        )
 
         id_token_dic = create_id_token(
             token=token,
@@ -251,9 +261,9 @@ class TokenEndpoint(object):
     def create_client_credentials_response_dic(self):
         # See https://tools.ietf.org/html/rfc6749#section-4.4.3
 
-        token = create_token(user=None, client=self.client, scope=self.client.scope)
-
-        token.save()
+        token = create_token(
+            user=None, client=self.client, scope=self.client.scope, request=self.request
+        )
 
         return {
             "access_token": token.access_token,
