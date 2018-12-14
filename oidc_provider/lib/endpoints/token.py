@@ -177,13 +177,14 @@ class TokenEndpoint(object):
         elif self.params["grant_type"] == "client_credentials":
             return self.create_client_credentials_response_dic()
 
-    def create_token(self, user, client, scope):
+    def create_token(self, user, client, scope, code=None, request=None):
         token = create_token(
             user=user,
             client=client,
             scope=scope,
+            code=code,
+            request=request,
         )
-
         return token
 
     def create_code_response_dic(self):
@@ -193,6 +194,8 @@ class TokenEndpoint(object):
             user=self.code.user,
             client=self.code.client,
             scope=self.code.scope,
+            code=self.code,
+            request=self.request,
         )
 
         if self.code.is_authentication:
@@ -238,6 +241,7 @@ class TokenEndpoint(object):
             user=self.token.user,
             client=self.token.client,
             scope=scope,
+            request=self.request,
         )
 
         # If the Token has an id_token it's an Authentication request.
@@ -275,9 +279,10 @@ class TokenEndpoint(object):
         # See https://tools.ietf.org/html/rfc6749#section-4.3
         token_scopes = self.validate_requested_scopes()
         token = self.create_token(
-            self.user,
-            self.client,
-            token_scopes,
+            user=self.user,
+            client=self.client,
+            scope=token_scopes,
+            request=self.request,
         )
 
         id_token_dic = create_id_token(
@@ -310,8 +315,8 @@ class TokenEndpoint(object):
             user=None,
             client=self.client,
             scope=token_scopes,
+            request=self.request,
         )
-        token.save()
 
         return {
             "access_token": token.access_token,
