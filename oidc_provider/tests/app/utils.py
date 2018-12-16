@@ -15,8 +15,7 @@ from django.contrib.auth.models import User
 from oidc_provider.models import (
     Client,
     Code,
-    Token,
-    ResponseType)
+    Token)
 
 
 FAKE_NONCE = 'cb584e44c43ed6bd0bc2d9c7e242837d'
@@ -68,8 +67,8 @@ def create_fake_client(response_type, is_public=False, require_consent=True):
     if isinstance(response_type, ("".__class__, u"".__class__)):
         response_type = (response_type,)
     for value in response_type:
-        client.response_types.add(ResponseType.objects.get(value=value))
-
+        client.response_types.add(value)
+    client.save()
     return client
 
 
