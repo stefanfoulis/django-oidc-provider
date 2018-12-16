@@ -5,7 +5,7 @@ import re
 from django.http import HttpResponse
 
 from oidc_provider.lib.errors import BearerTokenError
-from oidc_provider.models import Token
+from oidc_provider.models_swapped import Token
 
 
 logger = logging.getLogger(__name__)

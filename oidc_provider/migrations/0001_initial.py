@@ -11,7 +11,10 @@ class Migration(migrations.Migration):
     dependencies = [
         ('auth', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        migrations.swappable_dependency(oidc_settings.get('OIDC_CLIENT_MODEL')),
+        # migrations.swappable_dependency(oidc_settings.get('OIDC_CLIENT_MODEL')),
+        # migrations.swappable_dependency(oidc_settings.get('OIDC_CODE_MODEL')),
+        # migrations.swappable_dependency(oidc_settings.get('OIDC_TOKEN_MODEL')),
+        # migrations.swappable_dependency(oidc_settings.get('OIDC_USER_CONSENT_MODEL')),
     ]
 
     operations = [
@@ -44,6 +47,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'abstract': False,
+                'swappable': 'OIDC_CODE_MODEL'
             },
             bases=(models.Model,),
         ),
@@ -59,6 +63,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'abstract': False,
+                'swappable': 'OIDC_TOKEN_MODEL'
             },
             bases=(models.Model,),
         ),

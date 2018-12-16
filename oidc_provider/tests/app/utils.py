@@ -13,11 +13,7 @@ except ImportError:
 from django.utils import timezone
 from django.contrib.auth.models import User
 
-from oidc_provider.models import (
-    Client,
-    Code,
-    Token)
-
+from oidc_provider.models_swapped import Client, Code, Token
 
 FAKE_NONCE = 'cb584e44c43ed6bd0bc2d9c7e242837d'
 FAKE_RANDOM_STRING = ''.join(

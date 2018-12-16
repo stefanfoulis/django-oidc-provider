@@ -2,7 +2,6 @@ import logging
 
 from django.views.decorators.csrf import csrf_exempt
 
-from oidc_provider.lib.endpoints.introspection import TokenIntrospectionEndpoint
 try:
     from urllib import urlencode
     from urlparse import urlsplit, parse_qs, urlunsplit
@@ -30,8 +29,6 @@ from jwkest import long_to_base64
 
 from oidc_provider.compat import get_attr_or_callable
 from oidc_provider.lib.claims import StandardScopeClaims
-from oidc_provider.lib.endpoints.authorize import AuthorizeEndpoint
-from oidc_provider.lib.endpoints.token import TokenEndpoint
 from oidc_provider.lib.errors import (
     AuthorizeError,
     ClientIdError,
@@ -48,11 +45,8 @@ from oidc_provider.lib.utils.common import (
 )
 from oidc_provider.lib.utils.oauth2 import protected_resource_view
 from oidc_provider.lib.utils.token import client_id_from_id_token
-from oidc_provider.models import (
-    RSAKey,
-    get_client_model,
-    RESPONSE_TYPE_CHOICES,
-)
+from oidc_provider.models import RSAKey, RESPONSE_TYPE_CHOICES
+from oidc_provider.models_swapped import Client
 from oidc_provider import settings
 from oidc_provider import signals
 
@@ -60,11 +54,10 @@ from oidc_provider import signals
 logger = logging.getLogger(__name__)
 
 OIDC_TEMPLATES = settings.get('OIDC_TEMPLATES')
-Client = get_client_model()
 
 
 class AuthorizeView(View):
-    authorize_endpoint_class = AuthorizeEndpoint
+    authorize_endpoint_class = settings.get('OIDC_AUTHORIZE_ENDPOINT_CLASS', import_str=True)
 
     def get(self, request, *args, **kwargs):
         authorize = self.authorize_endpoint_class(request)
@@ -205,7 +198,7 @@ class AuthorizeView(View):
 
 
 class TokenView(View):
-    token_endpoint_class = TokenEndpoint
+    token_endpoint_class = settings.get('OIDC_TOKEN_ENDPOINT_CLASS', import_str=True)
 
     def post(self, request, *args, **kwargs):
         token = self.token_endpoint_class(request)
@@ -366,7 +359,8 @@ class CheckSessionIframeView(View):
 
 
 class TokenIntrospectionView(View):
-    token_instrospection_endpoint_class = TokenIntrospectionEndpoint
+    token_instrospection_endpoint_class = settings.get(
+        'OIDC_TOKEN_INTROSPECTION_ENDPOINT_CLASS', import_str=True)
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):

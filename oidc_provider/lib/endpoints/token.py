@@ -16,15 +16,14 @@ from oidc_provider.lib.utils.token import (
     create_token,
     encode_id_token,
 )
-from oidc_provider.models import (
+from oidc_provider.models_swapped import (
     Code,
     Token,
-    get_client_model
+    Client
 )
 from oidc_provider import settings
 
 logger = logging.getLogger(__name__)
-Client = get_client_model()
 
 
 class TokenEndpoint(object):
@@ -136,6 +135,9 @@ class TokenEndpoint(object):
             logger.debug('[Token] Invalid grant type: %s', self.params['grant_type'])
             raise TokenError('unsupported_grant_type')
 
+    def create_token(self, user, client, scope):
+        return create_token(user=user, client=client, scope=scope)
+
     def create_response_dic(self):
         if self.params['grant_type'] == 'authorization_code':
             return self.create_code_response_dic()
@@ -149,10 +151,11 @@ class TokenEndpoint(object):
     def create_code_response_dic(self):
         # See https://tools.ietf.org/html/rfc6749#section-4.1
 
-        token = create_token(
+        token = self.create_token(
             user=self.code.user,
             client=self.code.client,
-            scope=self.code.scope)
+            scope=self.code.scope,
+        )
 
         if self.code.is_authentication:
             id_token_dic = create_id_token(
@@ -193,10 +196,11 @@ class TokenEndpoint(object):
         if unauthorized_scopes:
             raise TokenError('invalid_scope')
 
-        token = create_token(
+        token = self.create_token(
             user=self.token.user,
             client=self.token.client,
-            scope=scope)
+            scope=scope,
+        )
 
         # If the Token has an id_token it's an Authentication request.
         if self.token.id_token:
@@ -232,10 +236,11 @@ class TokenEndpoint(object):
     def create_access_token_response_dic(self):
         # See https://tools.ietf.org/html/rfc6749#section-4.3
 
-        token = create_token(
-            self.user,
-            self.client,
-            self.params['scope'].split(' '))
+        token = self.create_token(
+            user=self.user,
+            client=self.client,
+            scope=self.params['scope'].split(' '),
+        )
 
         id_token_dic = create_id_token(
             token=token,
@@ -261,10 +266,11 @@ class TokenEndpoint(object):
     def create_client_credentials_response_dic(self):
         # See https://tools.ietf.org/html/rfc6749#section-4.4.3
 
-        token = create_token(
+        token = self.create_token(
             user=None,
             client=self.client,
-            scope=self.client.scope)
+            scope=self.client.scope,
+        )
 
         token.save()
 

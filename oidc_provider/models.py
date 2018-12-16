@@ -155,15 +155,11 @@ class Client(AbstractClient):
 
 
 def get_client_model():
-    """ Return the Application model that is active in this project. """
     return apps.get_model(oidc_settings.get('OIDC_CLIENT_MODEL'))
 
 
 class BaseCodeTokenModel(models.Model):
 
-    client = models.ForeignKey(
-        oidc_settings.get('OIDC_CLIENT_MODEL'), verbose_name=_(u'Client'),
-        on_delete=models.CASCADE)
     expires_at = models.DateTimeField(verbose_name=_(u'Expiration Date'))
     _scope = models.TextField(default='', verbose_name=_(u'Scopes'))
 
@@ -185,7 +181,7 @@ class BaseCodeTokenModel(models.Model):
         return timezone.now() >= self.expires_at
 
 
-class Code(BaseCodeTokenModel):
+class AbstractCode(BaseCodeTokenModel):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, verbose_name=_(u'User'), on_delete=models.CASCADE)
@@ -196,15 +192,29 @@ class Code(BaseCodeTokenModel):
     code_challenge_method = models.CharField(
         max_length=255, null=True, verbose_name=_(u'Code Challenge Method'))
 
+    client = models.ForeignKey(
+        oidc_settings.get('OIDC_CLIENT_MODEL'), verbose_name=_(u'Client'),
+        on_delete=models.CASCADE)
+
     class Meta:
         verbose_name = _(u'Authorization Code')
         verbose_name_plural = _(u'Authorization Codes')
+        abstract = True
 
     def __str__(self):
         return u'{0} - {1}'.format(self.client, self.code)
 
 
-class Token(BaseCodeTokenModel):
+class Code(AbstractCode):
+    class Meta(AbstractCode.Meta):
+        swappable = 'OIDC_CODE_MODEL'
+
+
+def get_code_model():
+    return apps.get_model(oidc_settings.get('OIDC_CODE_MODEL'))
+
+
+class AbstractToken(BaseCodeTokenModel):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, verbose_name=_(u'User'), on_delete=models.CASCADE)
@@ -212,9 +222,14 @@ class Token(BaseCodeTokenModel):
     refresh_token = models.CharField(max_length=255, unique=True, verbose_name=_(u'Refresh Token'))
     _id_token = models.TextField(verbose_name=_(u'ID Token'))
 
+    client = models.ForeignKey(
+        oidc_settings.get('OIDC_CLIENT_MODEL'), verbose_name=_(u'Client'),
+        on_delete=models.CASCADE)
+
     class Meta:
         verbose_name = _(u'Token')
         verbose_name_plural = _(u'Tokens')
+        abstract = True
 
     @property
     def id_token(self):
@@ -240,14 +255,37 @@ class Token(BaseCodeTokenModel):
         ).rstrip(b'=').decode('ascii')
 
 
-class UserConsent(BaseCodeTokenModel):
+class Token(AbstractToken):
+    class Meta(AbstractToken.Meta):
+        swappable = 'OIDC_TOKEN_MODEL'
+
+
+def get_token_model():
+    return apps.get_model(oidc_settings.get('OIDC_TOKEN_MODEL'))
+
+
+class AbstractUserConsent(BaseCodeTokenModel):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, verbose_name=_(u'User'), on_delete=models.CASCADE)
     date_given = models.DateTimeField(verbose_name=_(u'Date Given'))
 
+    client = models.ForeignKey(
+        oidc_settings.get('OIDC_CLIENT_MODEL'), verbose_name=_(u'Client'),
+        on_delete=models.CASCADE)
+
     class Meta:
         unique_together = ('user', 'client')
+        abstract = True
+
+
+class UserConsent(AbstractUserConsent):
+    class Meta(AbstractUserConsent.Meta):
+        swappable = 'OIDC_USER_CONSENT_MODEL'
+
+
+def get_user_consent_model():
+    return apps.get_model(oidc_settings.get('OIDC_USER_CONSENT_MODEL'))
 
 
 class RSAKey(models.Model):

@@ -11,11 +11,8 @@ from jwkest.jwt import JWT
 
 from oidc_provider.lib.utils.common import get_issuer, run_processing_hook
 from oidc_provider.lib.claims import StandardScopeClaims
-from oidc_provider.models import (
-    Code,
-    RSAKey,
-    Token,
-)
+from oidc_provider.models import RSAKey
+from oidc_provider.models_swapped import Code, Token
 from oidc_provider import settings
 
 

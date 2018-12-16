@@ -6,7 +6,8 @@ from django.forms import ModelForm
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
 
-from oidc_provider.models import Client, Code, Token, RSAKey
+from oidc_provider.models_swapped import Client, Code, Token
+from oidc_provider.models import RSAKey
 
 
 class ClientForm(ModelForm):

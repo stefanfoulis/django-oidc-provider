@@ -25,15 +25,14 @@ from oidc_provider.lib.utils.token import (
     create_token,
     encode_id_token,
 )
-from oidc_provider.models import (
+from oidc_provider.models_swapped import (
     UserConsent,
-    get_client_model
+    Client,
 )
 from oidc_provider import settings
 from oidc_provider.lib.utils.common import get_browser_state_or_default
 
 logger = logging.getLogger(__name__)
-Client = get_client_model()
 
 
 class AuthorizeEndpoint(object):
@@ -127,6 +126,12 @@ class AuthorizeEndpoint(object):
                 raise AuthorizeError(
                     self.params['redirect_uri'], 'invalid_request', self.grant_type)
 
+    def create_token(self, **kwargs):
+        return create_token(**kwargs)
+
+    def create_code(self, **kwargs):
+        return create_code(**kwargs)
+
     def create_response_uri(self):
         uri = urlsplit(self.params['redirect_uri'])
         query_params = parse_qs(uri.query)
@@ -134,7 +139,7 @@ class AuthorizeEndpoint(object):
 
         try:
             if self.grant_type in ['authorization_code', 'hybrid']:
-                code = create_code(
+                code = self.create_code(
                     user=self.request.user,
                     client=self.client,
                     scope=self.params['scope'],
@@ -148,7 +153,7 @@ class AuthorizeEndpoint(object):
                 query_params['code'] = code.code
                 query_params['state'] = self.params['state'] if self.params['state'] else ''
             elif self.grant_type in ['implicit', 'hybrid']:
-                token = create_token(
+                token = self.create_token(
                     user=self.request.user,
                     client=self.client,
                     scope=self.params['scope'])

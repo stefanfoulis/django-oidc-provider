@@ -28,10 +28,34 @@ class DefaultSettings(object):
     @property
     def OIDC_CLIENT_MODEL(self):
         """
-        OPTIONAL.  Use a custom client model, typically used to extend the client model
+        OPTIONAL.  Use a custom client model, typically used to extend the Client model
         with custom fields. The custom model should override oidc_provider.AbstractClient.
         """
         return 'oidc_provider.Client'
+
+    @property
+    def OIDC_CODE_MODEL(self):
+        """
+        OPTIONAL.  Use a custom client model, typically used to extend the Code model
+        with custom fields. The custom model should override oidc_provider.AbstractCode.
+        """
+        return 'oidc_provider.Code'
+
+    @property
+    def OIDC_TOKEN_MODEL(self):
+        """
+        OPTIONAL.  Use a custom client model, typically used to extend the Token model
+        with custom fields. The custom model should override oidc_provider.AbstractToken.
+        """
+        return 'oidc_provider.Token'
+
+    @property
+    def OIDC_USER_CONSENT_MODEL(self):
+        """
+        OPTIONAL.  Use a custom client model, typically used to extend the UserConsent model
+        with custom fields. The custom model should override oidc_provider.AbstractUserConsent.
+        """
+        return 'oidc_provider.UserConsent'
 
     @property
     def OIDC_AFTER_USERLOGIN_HOOK(self):

@@ -26,6 +26,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'abstract': False,
+                'swappable': 'OIDC_USER_CONSENT_MODEL'
             },
             bases=(models.Model,),
         ),
