@@ -36,7 +36,7 @@ class UserInfoTestCase(TestCase):
             extra_scope = []
         scope = ["openid", "email"] + extra_scope
 
-        token = create_token(user=self.user, client=self.client, scope=scope)
+        token = create_token(user=self.user, client=self.client, scope=scope, request=None)
 
         id_token_dic = create_id_token(
             token=token,

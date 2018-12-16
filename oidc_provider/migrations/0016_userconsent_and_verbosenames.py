@@ -10,8 +10,6 @@ from django.db import migrations
 from django.db import models
 from django.utils.timezone import utc
 
-from oidc_provider import settings as oidc_settings
-
 
 class Migration(migrations.Migration):
     dependencies = [
@@ -92,7 +90,7 @@ class Migration(migrations.Migration):
             name="client",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=oidc_settings.get("OIDC_CLIENT_MODEL"),
+                to="oidc_provider.Client",
                 verbose_name="Client",
             ),
         ),
@@ -162,7 +160,7 @@ class Migration(migrations.Migration):
             name="client",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=oidc_settings.get("OIDC_CLIENT_MODEL"),
+                to="oidc_provider.Client",
                 verbose_name="Client",
             ),
         ),
@@ -197,7 +195,7 @@ class Migration(migrations.Migration):
             name="client",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=oidc_settings.get("OIDC_CLIENT_MODEL"),
+                to="oidc_provider.Client",
                 verbose_name="Client",
             ),
         ),

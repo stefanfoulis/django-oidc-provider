@@ -16,7 +16,6 @@ from django.utils import timezone
 
 from oidc_provider.models import Client
 from oidc_provider.models import Code
-from oidc_provider.models import ResponseType
 from oidc_provider.models import Token
 
 FAKE_NONCE = "cb584e44c43ed6bd0bc2d9c7e242837d"
@@ -63,14 +62,12 @@ def create_fake_client(response_type, is_public=False, require_consent=True):
     client.redirect_uris = ["http://example.com/"]
     client.require_consent = require_consent
 
-    client.save()
-
     # check if response_type is a string in a python 2 and 3 compatible way
     if isinstance(response_type, ("".__class__, "".__class__)):
         response_type = (response_type,)
     for value in response_type:
-        client.response_types.add(ResponseType.objects.get(value=value))
-
+        client.response_types.add(value)
+    client.save()
     return client
 
 

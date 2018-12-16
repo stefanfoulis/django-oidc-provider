@@ -9,16 +9,17 @@ from django.http import JsonResponse
 from oidc_provider import settings
 from oidc_provider.lib.errors import TokenError
 from oidc_provider.lib.errors import UserAuthError
+from oidc_provider.lib.utils.common import redirect_uri_is_valid
 from oidc_provider.lib.utils.oauth2 import extract_client_auth
 from oidc_provider.lib.utils.token import create_id_token
 from oidc_provider.lib.utils.token import create_token
 from oidc_provider.lib.utils.token import encode_id_token
+from oidc_provider.lib.utils.token import get_valid_refresh_token
+from oidc_provider.models import Client
 from oidc_provider.models import Code
 from oidc_provider.models import Token
-from oidc_provider.models import get_client_model
 
 logger = logging.getLogger(__name__)
-Client = get_client_model()
 
 
 class TokenEndpoint(object):
@@ -62,7 +63,9 @@ class TokenEndpoint(object):
                 raise TokenError("invalid_client")
 
         if self.params["grant_type"] == "authorization_code":
-            if not (self.params["redirect_uri"] in self.client.redirect_uris):
+            if not redirect_uri_is_valid(
+                client=self.client, redirect_uri=self.params["redirect_uri"]
+            ):
                 logger.debug("[Token] Invalid redirect uri: %s", self.params["redirect_uri"])
                 raise TokenError("invalid_client")
 
@@ -118,8 +121,10 @@ class TokenEndpoint(object):
                 raise TokenError("invalid_grant")
 
             try:
-                self.token = Token.objects.get(
-                    refresh_token=self.params["refresh_token"], client=self.client
+                self.token = get_valid_refresh_token(
+                    refresh_token=self.params["refresh_token"],
+                    client=self.client,
+                    request=self.request,
                 )
 
             except Token.DoesNotExist:
@@ -148,7 +153,13 @@ class TokenEndpoint(object):
     def create_code_response_dic(self):
         # See https://tools.ietf.org/html/rfc6749#section-4.1
 
-        token = create_token(user=self.code.user, client=self.code.client, scope=self.code.scope)
+        token = create_token(
+            user=self.code.user,
+            client=self.code.client,
+            scope=self.code.scope,
+            request=self.request,
+            code=self.code,
+        )
 
         if self.code.is_authentication:
             id_token_dic = create_id_token(
@@ -174,7 +185,7 @@ class TokenEndpoint(object):
             "access_token": token.access_token,
             "refresh_token": token.refresh_token,
             "token_type": "bearer",
-            "expires_in": settings.get("OIDC_TOKEN_EXPIRE"),
+            "expires_in": token.valid_for.seconds,
             "id_token": encode_id_token(id_token_dic, token.client),
         }
 
@@ -189,7 +200,13 @@ class TokenEndpoint(object):
         if unauthorized_scopes:
             raise TokenError("invalid_scope")
 
-        token = create_token(user=self.token.user, client=self.token.client, scope=scope)
+        token = create_token(
+            user=self.token.user,
+            client=self.token.client,
+            scope=scope,
+            request=self.request,
+            old_token=self.token,
+        )
 
         # If the Token has an id_token it's an Authentication request.
         if self.token.id_token:
@@ -216,7 +233,7 @@ class TokenEndpoint(object):
             "access_token": token.access_token,
             "refresh_token": token.refresh_token,
             "token_type": "bearer",
-            "expires_in": settings.get("OIDC_TOKEN_EXPIRE"),
+            "expires_in": token.valid_for.seconds,
             "id_token": encode_id_token(id_token_dic, self.token.client),
         }
 
@@ -225,7 +242,9 @@ class TokenEndpoint(object):
     def create_access_token_response_dic(self):
         # See https://tools.ietf.org/html/rfc6749#section-4.3
 
-        token = create_token(self.user, self.client, self.params["scope"].split(" "))
+        token = create_token(
+            self.user, self.client, self.params["scope"].split(" "), request=self.request
+        )
 
         id_token_dic = create_id_token(
             token=token,
@@ -243,7 +262,7 @@ class TokenEndpoint(object):
         return {
             "access_token": token.access_token,
             "refresh_token": token.refresh_token,
-            "expires_in": settings.get("OIDC_TOKEN_EXPIRE"),
+            "expires_in": token.valid_for.seconds,
             "token_type": "bearer",
             "id_token": encode_id_token(id_token_dic, token.client),
         }
@@ -251,13 +270,13 @@ class TokenEndpoint(object):
     def create_client_credentials_response_dic(self):
         # See https://tools.ietf.org/html/rfc6749#section-4.4.3
 
-        token = create_token(user=None, client=self.client, scope=self.client.scope)
-
-        token.save()
+        token = create_token(
+            user=None, client=self.client, scope=self.client.scope, request=self.request
+        )
 
         return {
             "access_token": token.access_token,
-            "expires_in": settings.get("OIDC_TOKEN_EXPIRE"),
+            "expires_in": token.valid_for.seconds,
             "token_type": "bearer",
             "scope": self.client._scope,
         }

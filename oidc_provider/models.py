@@ -3,15 +3,13 @@ import base64
 import binascii
 import json
 from hashlib import md5
-from hashlib import sha256
 
-from django.apps import apps
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from oidc_provider import settings as oidc_settings
+from oidc_provider.fields import JsonMultiSelectModelField
 
 CLIENT_TYPE_CHOICES = [
     ("confidential", "Confidential"),
@@ -33,32 +31,7 @@ JWT_ALGS = [
 ]
 
 
-class ResponseTypeManager(models.Manager):
-    def get_by_natural_key(self, value):
-        return self.get(value=value)
-
-
-class ResponseType(models.Model):
-    objects = ResponseTypeManager()
-
-    value = models.CharField(
-        max_length=30,
-        choices=RESPONSE_TYPE_CHOICES,
-        unique=True,
-        verbose_name=_("Response Type Value"),
-    )
-    description = models.CharField(
-        max_length=50,
-    )
-
-    def natural_key(self):
-        return (self.value,)  # natural_key must return tuple
-
-    def __str__(self):
-        return "{0}".format(self.description)
-
-
-class AbstractClient(models.Model):
+class Client(models.Model):
     name = models.CharField(max_length=100, default="", verbose_name=_("Name"))
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -67,7 +40,7 @@ class AbstractClient(models.Model):
         null=True,
         default=None,
         on_delete=models.SET_NULL,
-        related_name="%(app_label)s_%(class)s_set",
+        related_name="oidc_clients_set",
     )
     client_type = models.CharField(
         max_length=30,
@@ -81,8 +54,8 @@ class AbstractClient(models.Model):
     )
     client_id = models.CharField(max_length=255, unique=True, verbose_name=_("Client ID"))
     client_secret = models.CharField(max_length=255, blank=True, verbose_name=_("Client SECRET"))
-    response_types = models.ManyToManyField(
-        ResponseType, related_name="%(app_label)s_%(class)s_set"
+    response_types = JsonMultiSelectModelField(
+        choices=RESPONSE_TYPE_CHOICES, verbose_name=_("Response Types")
     )
     jwt_alg = models.CharField(
         max_length=10,
@@ -140,7 +113,6 @@ class AbstractClient(models.Model):
     class Meta:
         verbose_name = _("Client")
         verbose_name_plural = _("Clients")
-        abstract = True
 
     def __str__(self):
         return "{0}".format(self.name)
@@ -149,11 +121,13 @@ class AbstractClient(models.Model):
         return self.__str__()
 
     def response_type_values(self):
-        return (response_type.value for response_type in self.response_types.all())
+        # Return the allowed response types in the same order as they appear in
+        # RESPONSE_TYPE_CHOICES.
+        return [code for code, description in RESPONSE_TYPE_CHOICES if code in self.response_types]
 
     def response_type_descriptions(self):
-        # return as a list, rather than a generator, so descriptions display correctly in admin
-        return [response_type.description for response_type in self.response_types.all()]
+        response_type_dict = dict(RESPONSE_TYPE_CHOICES)
+        return [response_type_dict[response_type] for response_type in self.response_type_values()]
 
     @property
     def redirect_uris(self):
@@ -184,20 +158,9 @@ class AbstractClient(models.Model):
         return self.redirect_uris[0] if self.redirect_uris else ""
 
 
-class Client(AbstractClient):
-    class Meta(AbstractClient.Meta):
-        swappable = "OIDC_CLIENT_MODEL"
-
-
-def get_client_model():
-    """Return the Application model that is active in this project."""
-    return apps.get_model(oidc_settings.get("OIDC_CLIENT_MODEL"))
-
-
 class BaseCodeTokenModel(models.Model):
-    client = models.ForeignKey(
-        oidc_settings.get("OIDC_CLIENT_MODEL"), verbose_name=_("Client"), on_delete=models.CASCADE
-    )
+    client = models.ForeignKey(Client, verbose_name=_("Client"), on_delete=models.CASCADE)
+    issued_at = models.DateTimeField(default=timezone.now, verbose_name=_("Issue Date"))
     expires_at = models.DateTimeField(verbose_name=_("Expiration Date"))
     _scope = models.TextField(default="", verbose_name=_("Scopes"))
 
@@ -217,6 +180,13 @@ class BaseCodeTokenModel(models.Model):
 
     def has_expired(self):
         return timezone.now() >= self.expires_at
+
+    @property
+    def valid_for(self):
+        # We round to seconds so we get a more realistic value
+        issued_at = self.issued_at.replace(microsecond=0)
+        expires_at = self.expires_at.replace(microsecond=0)
+        return expires_at - issued_at
 
 
 class Code(BaseCodeTokenModel):
@@ -243,8 +213,20 @@ class Token(BaseCodeTokenModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, verbose_name=_("User"), on_delete=models.CASCADE
     )
-    access_token = models.CharField(max_length=255, unique=True, verbose_name=_("Access Token"))
-    refresh_token = models.CharField(max_length=255, unique=True, verbose_name=_("Refresh Token"))
+    access_token_hash = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name=_("Access Token Lookup"),
+        help_text=_("Hashed version of the token for fast database lookups."),
+    )
+    access_token = models.TextField(verbose_name=_("Access Token"))
+    refresh_token_hash = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name=_("Refresh Token Lookup"),
+        help_text=_("Hashed version of the token for fast database lookups."),
+    )
+    refresh_token = models.TextField(verbose_name=_("Refresh Token"))
     _id_token = models.TextField(verbose_name=_("ID Token"))
 
     class Meta:
@@ -265,7 +247,12 @@ class Token(BaseCodeTokenModel):
     @property
     def at_hash(self):
         # @@@ d-o-p only supports 256 bits (change this if that changes)
-        hashed_access_token = sha256(self.access_token.encode("ascii")).hexdigest().encode("ascii")
+        # hashed_access_token = sha256(
+        #     self.access_token.encode('ascii')
+        # ).hexdigest().encode('ascii')
+
+        # Use the already saved sha256 hash on the model
+        hashed_access_token = self.access_token_hash.encode("ascii")
         return (
             base64.urlsafe_b64encode(
                 binascii.unhexlify(hashed_access_token[: len(hashed_access_token) // 2])
