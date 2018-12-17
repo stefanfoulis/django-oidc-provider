@@ -47,5 +47,6 @@ setup(
 
     install_requires=[
         'pyjwkest>=1.3.0',
+        'django-swappable-models',
     ],
 )

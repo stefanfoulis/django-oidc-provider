@@ -4,7 +4,7 @@ import binascii
 from hashlib import md5, sha256
 import json
 
-from django.apps import apps
+import swapper
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -12,6 +12,12 @@ from django.conf import settings
 
 from oidc_provider import settings as oidc_settings
 from oidc_provider.fields import JsonMultiSelectModelField
+
+
+# Sets all the settings variables for swappable models to start with OIDC_
+# (instead of OIDC_PROVIDER_).
+swapper.set_app_prefix('oidc_provider', 'OIDC')
+
 
 CLIENT_TYPE_CHOICES = [
     ('confidential', 'Confidential'),
@@ -151,15 +157,12 @@ class AbstractClient(models.Model):
 
 class Client(AbstractClient):
     class Meta(AbstractClient.Meta):
-        swappable = 'OIDC_CLIENT_MODEL'
-
-
-def get_client_model():
-    return apps.get_model(oidc_settings.get('OIDC_CLIENT_MODEL'))
+        pass
+    #     swappable = swapper.swappable_setting('oidc_provider', 'Client')
 
 
 class BaseCodeTokenModel(models.Model):
-
+    client = models.ForeignKey(Client, verbose_name=_(u'Client'), on_delete=models.CASCADE, related_name='%(app_label)s_%(class)s_set')
     expires_at = models.DateTimeField(verbose_name=_(u'Expiration Date'))
     _scope = models.TextField(default='', verbose_name=_(u'Scopes'))
 
@@ -184,17 +187,14 @@ class BaseCodeTokenModel(models.Model):
 class AbstractCode(BaseCodeTokenModel):
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, verbose_name=_(u'User'), on_delete=models.CASCADE)
+        settings.AUTH_USER_MODEL, verbose_name=_(u'User'), on_delete=models.CASCADE,
+        related_name='%(app_label)s_%(class)s_set')
     code = models.CharField(max_length=255, unique=True, verbose_name=_(u'Code'))
     nonce = models.CharField(max_length=255, blank=True, default='', verbose_name=_(u'Nonce'))
     is_authentication = models.BooleanField(default=False, verbose_name=_(u'Is Authentication?'))
     code_challenge = models.CharField(max_length=255, null=True, verbose_name=_(u'Code Challenge'))
     code_challenge_method = models.CharField(
         max_length=255, null=True, verbose_name=_(u'Code Challenge Method'))
-
-    client = models.ForeignKey(
-        oidc_settings.get('OIDC_CLIENT_MODEL'), verbose_name=_(u'Client'),
-        on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = _(u'Authorization Code')
@@ -205,26 +205,14 @@ class AbstractCode(BaseCodeTokenModel):
         return u'{0} - {1}'.format(self.client, self.code)
 
 
-class Code(AbstractCode):
-    class Meta(AbstractCode.Meta):
-        swappable = 'OIDC_CODE_MODEL'
-
-
-def get_code_model():
-    return apps.get_model(oidc_settings.get('OIDC_CODE_MODEL'))
-
-
 class AbstractToken(BaseCodeTokenModel):
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, verbose_name=_(u'User'), on_delete=models.CASCADE)
+        settings.AUTH_USER_MODEL, null=True, verbose_name=_(u'User'), on_delete=models.CASCADE,
+        related_name='%(app_label)s_%(class)s_set')
     access_token = models.CharField(max_length=255, unique=True, verbose_name=_(u'Access Token'))
     refresh_token = models.CharField(max_length=255, unique=True, verbose_name=_(u'Refresh Token'))
     _id_token = models.TextField(verbose_name=_(u'ID Token'))
-
-    client = models.ForeignKey(
-        oidc_settings.get('OIDC_CLIENT_MODEL'), verbose_name=_(u'Client'),
-        on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = _(u'Token')
@@ -255,40 +243,18 @@ class AbstractToken(BaseCodeTokenModel):
         ).rstrip(b'=').decode('ascii')
 
 
-class Token(AbstractToken):
-    class Meta(AbstractToken.Meta):
-        swappable = 'OIDC_TOKEN_MODEL'
-
-
-def get_token_model():
-    return apps.get_model(oidc_settings.get('OIDC_TOKEN_MODEL'))
-
-
 class AbstractUserConsent(BaseCodeTokenModel):
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, verbose_name=_(u'User'), on_delete=models.CASCADE)
+        settings.AUTH_USER_MODEL, verbose_name=_(u'User'), on_delete=models.CASCADE,
+        related_name='%(app_label)s_%(class)s_set')
     date_given = models.DateTimeField(verbose_name=_(u'Date Given'))
 
-    client = models.ForeignKey(
-        oidc_settings.get('OIDC_CLIENT_MODEL'), verbose_name=_(u'Client'),
-        on_delete=models.CASCADE)
-
     class Meta:
-        unique_together = ('user', 'client')
         abstract = True
 
 
-class UserConsent(AbstractUserConsent):
-    class Meta(AbstractUserConsent.Meta):
-        swappable = 'OIDC_USER_CONSENT_MODEL'
-
-
-def get_user_consent_model():
-    return apps.get_model(oidc_settings.get('OIDC_USER_CONSENT_MODEL'))
-
-
-class RSAKey(models.Model):
+class AbstractRSAKey(models.Model):
 
     key = models.TextField(
         verbose_name=_(u'Key'), help_text=_(u'Paste your private RSA Key here.'))
@@ -296,6 +262,7 @@ class RSAKey(models.Model):
     class Meta:
         verbose_name = _(u'RSA Key')
         verbose_name_plural = _(u'RSA Keys')
+        abstract = True
 
     def __str__(self):
         return u'{0}'.format(self.kid)
@@ -306,3 +273,26 @@ class RSAKey(models.Model):
     @property
     def kid(self):
         return u'{0}'.format(md5(self.key.encode('utf-8')).hexdigest() if self.key else '')
+
+
+class Code(AbstractCode):
+    class Meta(AbstractCode.Meta):
+        swappable = swapper.swappable_setting('oidc_provider', 'Code')
+
+
+class Token(AbstractToken):
+    class Meta(AbstractToken.Meta):
+        swappable = swapper.swappable_setting('oidc_provider', 'Token')
+
+
+class UserConsent(AbstractUserConsent):
+    class Meta(AbstractUserConsent.Meta):
+        unique_together = ('user', 'client')
+        swappable = swapper.swappable_setting('oidc_provider', 'UserConsent')
+
+
+class RSAKey(AbstractRSAKey):
+    pass
+    # class Meta(AbstractRSAKey.Meta):
+    #     swappable = swapper.swappable_setting('oidc_provider', 'RSAKey')
+

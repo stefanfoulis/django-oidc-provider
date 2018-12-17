@@ -1,6 +1,7 @@
-from .models import get_code_model, get_token_model, get_user_consent_model, get_client_model
+import swapper
 
-Code = get_code_model()
-Token = get_token_model()
-UserConsent = get_user_consent_model()
-Client = get_client_model()
+Client = swapper.load_model("oidc_provider", "Client")
+Code = swapper.load_model("oidc_provider", "Code")
+Token = swapper.load_model("oidc_provider", "Token")
+UserConsent = swapper.load_model("oidc_provider", "UserConsent")
+RSAKey = swapper.load_model("oidc_provider", "RSAKey")
