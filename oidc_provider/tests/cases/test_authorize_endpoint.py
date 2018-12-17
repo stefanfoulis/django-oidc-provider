@@ -591,7 +591,7 @@ class AuthorizationCodeFlowTestCase(TestCase, AuthorizeEndpointMixin):
         """
         data = {
             "client_id": "Hello\0World",
-            "response_type": next(self.client_code.response_type_values()),
+            "response_type": self.client_code.response_type_values()[0],
             "redirect_uri": self.client_code.default_redirect_uri,
             "scope": "openid email",
             "state": self.state,
