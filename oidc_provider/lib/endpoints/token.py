@@ -13,6 +13,7 @@ from oidc_provider.lib.utils.oauth2 import extract_client_auth
 from oidc_provider.lib.utils.token import create_id_token
 from oidc_provider.lib.utils.token import create_token
 from oidc_provider.lib.utils.token import encode_id_token
+from oidc_provider.lib.utils.token import get_by_refresh_token
 from oidc_provider.models import Client
 from oidc_provider.models import Code
 from oidc_provider.models import Token
@@ -117,8 +118,9 @@ class TokenEndpoint(object):
                 raise TokenError("invalid_grant")
 
             try:
-                self.token = Token.objects.get(
-                    refresh_token=self.params["refresh_token"], client=self.client
+                self.token = get_by_refresh_token(
+                    refresh_token=self.params["refresh_token"],
+                    client=self.client,
                 )
 
             except Token.DoesNotExist:

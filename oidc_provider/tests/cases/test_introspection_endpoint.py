@@ -20,6 +20,7 @@ except ImportError:
     from django.core.urlresolvers import reverse
 
 from oidc_provider.lib.utils.token import create_id_token
+from oidc_provider.lib.utils.token import hash_token
 from oidc_provider.tests.app.utils import FAKE_RANDOM_STRING
 from oidc_provider.tests.app.utils import create_fake_client
 from oidc_provider.tests.app.utils import create_fake_token
@@ -39,6 +40,7 @@ class IntrospectionTestCase(TestCase):
         self.resource.save()
         self.token = create_fake_token(self.user, self.client.scope, self.client)
         self.token.access_token = str(random.randint(1, 999999)).zfill(6)
+        self.token.access_token_hash = hash_token(self.token.access_token)
         self.now = time.time()
         with patch("oidc_provider.lib.utils.token.time.time") as time_func:
             time_func.return_value = self.now
