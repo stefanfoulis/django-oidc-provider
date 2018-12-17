@@ -13,6 +13,9 @@ from oidc_provider.lib.utils.common import get_browser_state_or_default
 from oidc_provider.lib.utils.common import get_issuer
 from oidc_provider.lib.utils.token import create_id_token
 from oidc_provider.lib.utils.token import create_token
+from oidc_provider.lib.utils.token import get_by_access_token
+from oidc_provider.lib.utils.token import get_by_refresh_token
+from oidc_provider.models import Token
 from oidc_provider.tests.app.utils import create_fake_client
 from oidc_provider.tests.app.utils import create_fake_user
 
@@ -93,7 +96,7 @@ class TokenTest(TestCase):
     @override_settings(OIDC_IDTOKEN_INCLUDE_CLAIMS=True)
     def test_create_id_token_with_include_claims_setting(self):
         client = create_fake_client("code")
-        token = create_token(self.user, client, scope=["openid", "email"])
+        token = create_token(self.user, client, scope=["openid", "email"], request=None)
         id_token_data = create_id_token(token=token, user=self.user, aud="test-aud")
         self.assertIn("email", id_token_data)
         self.assertTrue(id_token_data["email"])
@@ -106,7 +109,7 @@ class TokenTest(TestCase):
     )
     def test_create_id_token_with_include_claims_setting_and_extra(self):
         client = create_fake_client("code")
-        token = create_token(self.user, client, scope=["openid", "email", "pizza"])
+        token = create_token(self.user, client, scope=["openid", "email", "pizza"], request=None)
         id_token_data = create_id_token(token=token, user=self.user, aud="test-aud")
         # Standard claims included.
         self.assertIn("email", id_token_data)
@@ -119,7 +122,7 @@ class TokenTest(TestCase):
 
     def test_token_saving_id_token_with_non_serialized_objects(self):
         client = create_fake_client("code")
-        token = create_token(self.user, client, scope=["openid", "email", "pizza"])
+        token = create_token(self.user, client, scope=["openid", "email", "pizza"], request=None)
         token.id_token = {
             "iss": "http://localhost:8000/openid",
             "sub": "1",
@@ -140,6 +143,33 @@ class TokenTest(TestCase):
         self.assertEqual(token.id_token["_extra_date"], "2000-12-25")
         # Even a raw object should be serialized wit str() at least.
         self.assertEqual(token.id_token["_extra_object"], "<class 'object'>")
+
+    def test_get_token_using_hash(self):
+        client1 = create_fake_client("code")
+        client2 = create_fake_client("code")
+        token1 = create_token(self.user, client1, [], request=None)
+
+        # can get tokens
+        self.assertEqual(token1, get_by_access_token(token1.access_token))
+        self.assertEqual(token1, get_by_refresh_token(token1.refresh_token))
+
+        # get tokens filtered by client
+        self.assertEqual(token1, get_by_access_token(token1.access_token, client=client1))
+        self.assertEqual(token1, get_by_refresh_token(token1.refresh_token, client=client1))
+
+        # can't get tokens if client does not match
+        self.assertRaises(
+            Token.DoesNotExist,
+            get_by_access_token,
+            token1.access_token,
+            client=client2,
+        )
+        self.assertRaises(
+            Token.DoesNotExist,
+            get_by_refresh_token,
+            token1.refresh_token,
+            client=client2,
+        )
 
 
 class BrowserStateTest(TestCase):
