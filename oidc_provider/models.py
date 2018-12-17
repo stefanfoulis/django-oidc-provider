@@ -206,8 +206,20 @@ class Token(BaseCodeTokenModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, verbose_name=_("User"), on_delete=models.CASCADE
     )
-    access_token = models.CharField(max_length=255, unique=True, verbose_name=_("Access Token"))
-    refresh_token = models.CharField(max_length=255, unique=True, verbose_name=_("Refresh Token"))
+    access_token_hash = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name=_("Access Token Lookup"),
+        help_text=_("Hashed version of the token for fast database lookups."),
+    )
+    access_token = models.TextField(verbose_name=_("Access Token"))
+    refresh_token_hash = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name=_("Refresh Token Lookup"),
+        help_text=_("Hashed version of the token for fast database lookups."),
+    )
+    refresh_token = models.TextField(verbose_name=_("Refresh Token"))
     _id_token = models.TextField(verbose_name=_("ID Token"))
 
     class Meta:
