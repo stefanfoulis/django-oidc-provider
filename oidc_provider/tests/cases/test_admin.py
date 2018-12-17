@@ -3,7 +3,6 @@ from django.test import TestCase
 
 from oidc_provider.admin import ClientForm
 from oidc_provider.models import Client
-from oidc_provider.models import ResponseType
 from oidc_provider.tests.app.utils import create_fake_user
 
 User = get_user_model()
@@ -16,9 +15,6 @@ class ClientFormTest(TestCase):
 
     def setUp(self):
         self.user = create_fake_user()
-        self.code_response_type, _ = ResponseType.objects.get_or_create(
-            value="code", defaults={"description": "code (Authorization Code Flow)"}
-        )
 
     def test_creates_client_without_client_id_generates_random_one(self):
         """Test that creating a client without client_id generates a random 6-digit one."""
@@ -26,7 +22,7 @@ class ClientFormTest(TestCase):
             "name": "Test Client",
             "owner": self.user.pk,
             "client_type": "public",
-            "response_types": [self.code_response_type.pk],
+            "response_types": ["code"],
             "_redirect_uris": "http://example.com/callback",
         }
 
@@ -48,14 +44,14 @@ class ClientFormTest(TestCase):
             owner=self.user,
             client_type="public",
             client_id="custom-client-123",
+            response_types=["code"],
         )
-        client.response_types.add(self.code_response_type)
 
         form_data = {
             "name": "Existing Client Updated",
             "owner": self.user.pk,
             "client_type": "public",
-            "response_types": [self.code_response_type.pk],
+            "response_types": ["code"],
             "_redirect_uris": "http://example.com/callback",
             "client_id": "custom-client-123",
         }
@@ -76,8 +72,8 @@ class ClientFormTest(TestCase):
             owner=self.user,
             client_type="public",
             client_id="normalclient",  # Start with normal client_id
+            response_types=["code"],
         )
-        client.response_types.add(self.code_response_type)
 
         # Manually set problematic client_id to test sanitization
         client.client_id = "client\x00\x01test"  # Contains null byte and control char
@@ -86,7 +82,7 @@ class ClientFormTest(TestCase):
             "name": "Problematic Client",
             "owner": self.user.pk,
             "client_type": "public",
-            "response_types": [self.code_response_type.pk],
+            "response_types": ["code"],
             "_redirect_uris": "http://example.com/callback",
         }
 

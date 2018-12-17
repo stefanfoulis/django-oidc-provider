@@ -15,6 +15,7 @@ from oidc_provider.lib.utils.sanitization import sanitize_client_id
 from oidc_provider.lib.utils.token import create_id_token
 from oidc_provider.lib.utils.token import create_token
 from oidc_provider.lib.utils.token import encode_id_token
+from oidc_provider.lib.utils.token import get_valid_refresh_token
 from oidc_provider.models import Client
 from oidc_provider.models import Code
 from oidc_provider.models import Token
@@ -127,8 +128,10 @@ class TokenEndpoint(object):
                 raise TokenError("invalid_grant")
 
             try:
-                self.token = Token.objects.get(
-                    refresh_token=self.params["refresh_token"], client=self.client
+                self.token = get_valid_refresh_token(
+                    refresh_token=self.params["refresh_token"],
+                    client=self.client,
+                    request=self.request,
                 )
 
             except Token.DoesNotExist:
@@ -178,13 +181,14 @@ class TokenEndpoint(object):
         elif self.params["grant_type"] == "client_credentials":
             return self.create_client_credentials_response_dic()
 
-    def create_token(self, user, client, scope, code=None, request=None):
+    def create_token(self, user, client, scope, code=None, request=None, old_token=None):
         token = create_token(
             user=user,
             client=client,
             scope=scope,
             code=code,
             request=request,
+            old_token=old_token,
         )
         return token
 
@@ -243,6 +247,7 @@ class TokenEndpoint(object):
             client=self.token.client,
             scope=scope,
             request=self.request,
+            old_token=self.token,
         )
 
         # If the Token has an id_token it's an Authentication request.
