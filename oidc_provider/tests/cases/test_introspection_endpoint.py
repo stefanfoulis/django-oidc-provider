@@ -8,9 +8,7 @@ except ImportError:
     from urllib import urlencode
 
 from django.core.management import call_command
-from django.test import RequestFactory
-from django.test import TestCase
-from django.test import override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
 from django.utils.encoding import force_str
 
@@ -19,11 +17,13 @@ try:
 except ImportError:
     from django.core.urlresolvers import reverse
 
-from oidc_provider.lib.utils.token import create_id_token
-from oidc_provider.tests.app.utils import FAKE_RANDOM_STRING
-from oidc_provider.tests.app.utils import create_fake_client
-from oidc_provider.tests.app.utils import create_fake_token
-from oidc_provider.tests.app.utils import create_fake_user
+from oidc_provider.lib.utils.token import create_id_token, hash_token
+from oidc_provider.tests.app.utils import (
+    FAKE_RANDOM_STRING,
+    create_fake_client,
+    create_fake_token,
+    create_fake_user,
+)
 from oidc_provider.views import TokenIntrospectionView
 
 
@@ -39,6 +39,7 @@ class IntrospectionTestCase(TestCase):
         self.resource.save()
         self.token = create_fake_token(self.user, self.client.scope, self.client)
         self.token.access_token = str(random.randint(1, 999999)).zfill(6)
+        self.token.access_token_hash = hash_token(self.token.access_token)
         self.now = time.time()
         with patch("oidc_provider.lib.utils.token.time.time") as time_func:
             time_func.return_value = self.now
@@ -142,4 +143,6 @@ class IntrospectionTestCase(TestCase):
     @override_settings(OIDC_INTROSPECTION_RESPONSE_SCOPE_ENABLE=True)
     def test_enable_scope(self):
         response = self._make_request()
+        self._assert_active(response, scope="openid email")
+        self._assert_active(response, scope="openid email")
         self._assert_active(response, scope="openid email")
