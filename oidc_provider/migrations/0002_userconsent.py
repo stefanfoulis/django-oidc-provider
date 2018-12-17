@@ -5,8 +5,6 @@ from django.conf import settings
 from django.db import migrations
 from django.db import models
 
-from oidc_provider import settings as oidc_settings
-
 
 class Migration(migrations.Migration):
     dependencies = [
@@ -26,12 +24,7 @@ class Migration(migrations.Migration):
                 ),
                 ("expires_at", models.DateTimeField()),
                 ("_scope", models.TextField(default=b"")),
-                (
-                    "client",
-                    models.ForeignKey(
-                        to=oidc_settings.get("OIDC_CLIENT_MODEL"), on_delete=models.CASCADE
-                    ),
-                ),
+                ("client", models.ForeignKey(to="oidc_provider.Client", on_delete=models.CASCADE)),
                 ("user", models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),
             ],
             options={

@@ -26,11 +26,10 @@ from oidc_provider.lib.utils.token import create_code
 from oidc_provider.lib.utils.token import create_id_token
 from oidc_provider.lib.utils.token import create_token
 from oidc_provider.lib.utils.token import encode_id_token
+from oidc_provider.models import Client
 from oidc_provider.models import UserConsent
-from oidc_provider.models import get_client_model
 
 logger = logging.getLogger(__name__)
-Client = get_client_model()
 
 
 class AuthorizeEndpoint(object):

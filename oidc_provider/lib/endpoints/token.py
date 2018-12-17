@@ -13,12 +13,11 @@ from oidc_provider.lib.utils.oauth2 import extract_client_auth
 from oidc_provider.lib.utils.token import create_id_token
 from oidc_provider.lib.utils.token import create_token
 from oidc_provider.lib.utils.token import encode_id_token
+from oidc_provider.models import Client
 from oidc_provider.models import Code
 from oidc_provider.models import Token
-from oidc_provider.models import get_client_model
 
 logger = logging.getLogger(__name__)
-Client = get_client_model()
 
 
 class TokenEndpoint(object):

@@ -55,13 +55,12 @@ from oidc_provider.lib.utils.common import redirect
 from oidc_provider.lib.utils.oauth2 import protected_resource_view
 from oidc_provider.lib.utils.token import client_id_from_id_token
 from oidc_provider.models import RESPONSE_TYPE_CHOICES
+from oidc_provider.models import Client
 from oidc_provider.models import RSAKey
-from oidc_provider.models import get_client_model
 
 logger = logging.getLogger(__name__)
 
 OIDC_TEMPLATES = settings.get("OIDC_TEMPLATES")
-Client = get_client_model()
 
 
 class AuthorizeView(View):

@@ -5,13 +5,11 @@ import json
 from hashlib import md5
 from hashlib import sha256
 
-from django.apps import apps
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from oidc_provider import settings as oidc_settings
 from oidc_provider.fields import JsonMultiSelectModelField
 
 CLIENT_TYPE_CHOICES = [
@@ -34,7 +32,7 @@ JWT_ALGS = [
 ]
 
 
-class AbstractClient(models.Model):
+class Client(models.Model):
     name = models.CharField(max_length=100, default="", verbose_name=_("Name"))
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -43,7 +41,7 @@ class AbstractClient(models.Model):
         null=True,
         default=None,
         on_delete=models.SET_NULL,
-        related_name="%(app_label)s_%(class)s_set",
+        related_name="oidc_clients_set",
     )
     client_type = models.CharField(
         max_length=30,
@@ -116,7 +114,6 @@ class AbstractClient(models.Model):
     class Meta:
         verbose_name = _("Client")
         verbose_name_plural = _("Clients")
-        abstract = True
 
     def __str__(self):
         return "{0}".format(self.name)
@@ -162,20 +159,8 @@ class AbstractClient(models.Model):
         return self.redirect_uris[0] if self.redirect_uris else ""
 
 
-class Client(AbstractClient):
-    class Meta(AbstractClient.Meta):
-        swappable = "OIDC_CLIENT_MODEL"
-
-
-def get_client_model():
-    """Return the Application model that is active in this project."""
-    return apps.get_model(oidc_settings.get("OIDC_CLIENT_MODEL"))
-
-
 class BaseCodeTokenModel(models.Model):
-    client = models.ForeignKey(
-        oidc_settings.get("OIDC_CLIENT_MODEL"), verbose_name=_("Client"), on_delete=models.CASCADE
-    )
+    client = models.ForeignKey(Client, verbose_name=_("Client"), on_delete=models.CASCADE)
     expires_at = models.DateTimeField(verbose_name=_("Expiration Date"))
     _scope = models.TextField(default="", verbose_name=_("Scopes"))
 
