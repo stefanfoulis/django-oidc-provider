@@ -15,6 +15,7 @@ from oidc_provider.lib.utils.token import (
     create_id_token,
     create_token,
     encode_id_token,
+    get_valid_refresh_token,
 )
 from oidc_provider.models import (
     Code,
@@ -120,8 +121,11 @@ class TokenEndpoint(object):
                 raise TokenError('invalid_grant')
 
             try:
-                self.token = Token.objects.get(refresh_token=self.params['refresh_token'],
-                                               client=self.client)
+                self.token = get_valid_refresh_token(
+                    refresh_token=self.params['refresh_token'],
+                    client=self.client,
+                    request=self.request,
+                )
 
             except Token.DoesNotExist:
                 logger.debug(
@@ -198,7 +202,9 @@ class TokenEndpoint(object):
             user=self.token.user,
             client=self.token.client,
             scope=scope,
-            request=self.request)
+            request=self.request,
+            old_token=self.token,
+        )
 
         # If the Token has an id_token it's an Authentication request.
         if self.token.id_token:
