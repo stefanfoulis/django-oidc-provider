@@ -1,9 +1,11 @@
+import hashlib
 import time
 import uuid
 from datetime import timedelta
 
 from Cryptodome.PublicKey.RSA import importKey
 from django.utils import dateformat, timezone
+from django.utils.encoding import force_str
 from jwkest.jwk import RSAKey as jwk_RSAKey
 from jwkest.jwk import SYMKey
 from jwkest.jws import JWS
@@ -98,9 +100,26 @@ def client_id_from_id_token(id_token):
     return aud
 
 
+def hash_token(token):
+    """
+    returns the sha256 hash of the token
+    """
+    return force_str(hashlib.sha256(token.encode("ascii")).hexdigest())
+
+
 def default_create_token(
-        user, client, scope, expires_at, access_token, refresh_token,
-        id_token_dic, code, request):
+    user,
+    client,
+    scope,
+    expires_at,
+    access_token,
+    refresh_token,
+    id_token_dic,
+    code,
+    old_token,
+    request,
+    hash_token_function,
+):
     """
     WARNING: The api of this function is still experimental and may change at any time.
 
@@ -110,13 +129,16 @@ def default_create_token(
     customize them.
     You could, for example, generate a JWT instead of just a random string.
     `code` is set if this token is being created as "code response".
+    `old_token` is set if this is a token refresh.
     """
     token = Token(
         user=user,
         client=client,
         expires_at=expires_at,
         scope=scope,
+        access_token_hash=hash_token_function(access_token),
         access_token=access_token,
+        refresh_token_hash=hash_token_function(refresh_token),
         refresh_token=refresh_token,
     )
     if id_token_dic is not None:
@@ -127,19 +149,28 @@ def default_create_token(
 
 
 def create_token(*args, **kwargs):
-    kwargs['access_token'] = uuid.uuid4().hex
-    kwargs['refresh_token'] = uuid.uuid4().hex
-    kwargs['expires_at'] = timezone.now() + timedelta(
-        seconds=settings.get('OIDC_TOKEN_EXPIRE'))
-    kwargs['id_token_dic'] = kwargs.get('id_token_dic', None)
-    kwargs['code'] = kwargs.get('code', None)
-    kwargs['request'] = kwargs.get('request', None)
-    return settings.get('OIDC_CREATE_TOKEN', import_str=True)(*args, **kwargs)
+    kwargs["access_token"] = uuid.uuid4().hex
+    kwargs["refresh_token"] = uuid.uuid4().hex
+    kwargs["expires_at"] = timezone.now() + timedelta(seconds=settings.get("OIDC_TOKEN_EXPIRE"))
+    kwargs["id_token_dic"] = kwargs.get("id_token_dic", None)
+    kwargs["code"] = kwargs.get("code", None)
+    kwargs["old_token"] = kwargs.get("old_token", None)
+    kwargs["hash_token_function"] = hash_token
+    return settings.get("OIDC_CREATE_TOKEN", import_str=True)(*args, **kwargs)
 
 
 def default_create_code(
-        user, client, scope, nonce, is_authentication, code, expires_at, code_challenge,
-        code_challenge_method, request):
+    user,
+    client,
+    scope,
+    nonce,
+    is_authentication,
+    code,
+    expires_at,
+    code_challenge,
+    code_challenge_method,
+    request,
+):
     """
     WARNING: The api of this function is still experimental and may change at any time.
     Create and populate a Code object.
@@ -164,17 +195,16 @@ def default_create_code(
 
 
 def create_code(*args, **kwargs):
-    code_challenge = kwargs.get('code_challenge', None)
-    code_challenge_method = kwargs.get('code_challenge_method', None)
+    code_challenge = kwargs.get("code_challenge", None)
+    code_challenge_method = kwargs.get("code_challenge_method", None)
     if not (code_challenge and code_challenge_method):
         code_challenge = code_challenge_method = None
-    kwargs['code_challenge'] = code_challenge
-    kwargs['code_challenge_method'] = code_challenge_method
-    kwargs['expires_at'] = timezone.now() + timedelta(
-        seconds=settings.get('OIDC_CODE_EXPIRE'))
-    kwargs['code'] = uuid.uuid4().hex
+    kwargs["code_challenge"] = code_challenge
+    kwargs["code_challenge_method"] = code_challenge_method
+    kwargs["expires_at"] = timezone.now() + timedelta(seconds=settings.get("OIDC_CODE_EXPIRE"))
+    kwargs["code"] = uuid.uuid4().hex
     kwargs.setdefault("request", None)
-    return settings.get('OIDC_CREATE_CODE', import_str=True)(*args, **kwargs)
+    return settings.get("OIDC_CREATE_CODE", import_str=True)(*args, **kwargs)
 
 
 def get_client_alg_keys(client):
@@ -194,3 +224,32 @@ def get_client_alg_keys(client):
         raise Exception("Unsupported key algorithm.")
 
     return keys
+
+
+def _get_token(raw_token, fieldname, client=None):
+    qs = Token.objects.all()
+    if client:
+        qs = qs.filter(client=client)
+    hash_fieldname = "{}_hash".format(fieldname)
+    hashed_token = hash_token(raw_token)
+    token = qs.get(**{hash_fieldname: hashed_token})
+    if getattr(token, fieldname) != raw_token:
+        # Suspicious. Bad hash in database or hash collision attack.
+        raise Token.DoesNotExist("%s matching query does not exist." % Token._meta.object_name)
+    return token
+
+
+def get_by_access_token(access_token, client=None):
+    return _get_token(raw_token=access_token, fieldname="access_token", client=client)
+
+
+def get_by_refresh_token(refresh_token, client=None):
+    return _get_token(raw_token=refresh_token, fieldname="refresh_token", client=client)
+
+
+def default_get_valid_refresh_token(refresh_token, client, request):
+    return get_by_refresh_token(refresh_token=refresh_token, client=client)
+
+
+def get_valid_refresh_token(**kwargs):
+    return settings.get("OIDC_GET_VALID_REFRESH_TOKEN", import_str=True)(**kwargs)
