@@ -181,7 +181,7 @@ class TokenEndpoint(object):
             "access_token": token.access_token,
             "refresh_token": token.refresh_token,
             "token_type": "bearer",
-            "expires_in": settings.get("OIDC_TOKEN_EXPIRE"),
+            "expires_in": token.valid_for.seconds,
             "id_token": encode_id_token(id_token_dic, token.client),
         }
 
@@ -225,7 +225,7 @@ class TokenEndpoint(object):
             "access_token": token.access_token,
             "refresh_token": token.refresh_token,
             "token_type": "bearer",
-            "expires_in": settings.get("OIDC_TOKEN_EXPIRE"),
+            "expires_in": token.valid_for.seconds,
             "id_token": encode_id_token(id_token_dic, self.token.client),
         }
 
@@ -254,7 +254,7 @@ class TokenEndpoint(object):
         return {
             "access_token": token.access_token,
             "refresh_token": token.refresh_token,
-            "expires_in": settings.get("OIDC_TOKEN_EXPIRE"),
+            "expires_in": token.valid_for.seconds,
             "token_type": "bearer",
             "id_token": encode_id_token(id_token_dic, token.client),
         }
@@ -268,7 +268,7 @@ class TokenEndpoint(object):
 
         return {
             "access_token": token.access_token,
-            "expires_in": settings.get("OIDC_TOKEN_EXPIRE"),
+            "expires_in": token.valid_for.seconds,
             "token_type": "bearer",
             "scope": self.client._scope,
         }
