@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                 help_text="Hashed version of the token for fast database lookups.",
                 max_length=255,
                 unique=True,
-                verbose_name="Access Token Lookup",
+                verbose_name="Refresh Token Lookup",
             ),
         ),
     ]

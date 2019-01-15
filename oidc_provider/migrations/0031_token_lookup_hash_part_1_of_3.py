@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
                 max_length=255,
                 null=True,
                 unique=True,
-                verbose_name="Access Token Lookup",
+                verbose_name="Refresh Token Lookup",
             ),
         ),
         migrations.AlterField(
