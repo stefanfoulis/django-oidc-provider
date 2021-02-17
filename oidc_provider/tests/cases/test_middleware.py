@@ -1,3 +1,5 @@
+import mock
+
 try:
     from django.urls import url
 except ImportError:
@@ -5,7 +7,6 @@ except ImportError:
 from django.test import TestCase
 from django.test import override_settings
 from django.views.generic import View
-from mock import mock
 
 
 class StubbedViews:
