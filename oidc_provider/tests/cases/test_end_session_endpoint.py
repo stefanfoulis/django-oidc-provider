@@ -1,10 +1,10 @@
+import mock
 from django.core.management import call_command
 
 try:
     from django.urls import reverse
 except ImportError:
     from django.core.urlresolvers import reverse
-import mock
 from django.test import TestCase
 
 from oidc_provider import settings

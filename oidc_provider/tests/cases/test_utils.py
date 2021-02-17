@@ -2,11 +2,11 @@ import time
 from datetime import datetime
 from hashlib import sha224
 
+import mock
 from django.http import HttpRequest
 from django.test import TestCase
 from django.test import override_settings
 from django.utils import timezone
-from mock import mock
 
 from oidc_provider.lib.utils.common import get_browser_state_or_default
 from oidc_provider.lib.utils.common import get_issuer
