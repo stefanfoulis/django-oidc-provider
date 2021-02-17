@@ -1,3 +1,4 @@
+import mock
 from django.core.management import call_command
 try:
     from django.urls import reverse
@@ -15,7 +16,6 @@ from oidc_provider.tests.app.utils import (
     create_fake_client,
     create_fake_user,
 )
-import mock
 
 
 class EndSessionTestCase(TestCase):

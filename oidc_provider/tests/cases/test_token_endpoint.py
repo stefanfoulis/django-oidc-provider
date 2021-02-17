@@ -3,6 +3,7 @@ import time
 import uuid
 
 from base64 import b64encode
+from mock import patch
 
 try:
     from urllib.parse import urlencode
@@ -24,7 +25,6 @@ from django.views.decorators.http import require_http_methods
 from jwkest.jwk import KEYS
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
-from mock import patch
 
 from oidc_provider.lib.endpoints.introspection import INTROSPECTION_SCOPE
 from oidc_provider.lib.utils.oauth2 import protected_resource_view

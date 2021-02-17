@@ -43,7 +43,7 @@ def create_fake_user():
     return user
 
 
-def create_fake_client(response_type, is_public=False, require_consent=True):
+def create_fake_client(response_type, is_public=False, require_consent=True, force_consent=False):
     """
     Create a test client, response_type argument MUST be:
     'code', 'id_token' or 'id_token token'.
@@ -60,6 +60,7 @@ def create_fake_client(response_type, is_public=False, require_consent=True):
         client.client_secret = str(random.randint(1, 999999)).zfill(6)
     client.redirect_uris = ['http://example.com/']
     client.require_consent = require_consent
+    client.force_consent = force_consent
 
     # check if response_type is a string in a python 2 and 3 compatible way
     if isinstance(response_type, ("".__class__, u"".__class__)):

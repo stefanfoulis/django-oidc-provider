@@ -112,6 +112,10 @@ class AuthorizeView(View):
                     authorize.client.client_type != 'public' or
                     authorize.params['response_type'] in implicit_flow_resp_types)
 
+                if authorize.client.force_consent:
+                    authorize.set_client_user_consent()
+                    return redirect(authorize.create_response_uri())
+
                 if not authorize.client.require_consent and (
                         allow_skipping_consent and
                         'consent' not in authorize.params['prompt']):
