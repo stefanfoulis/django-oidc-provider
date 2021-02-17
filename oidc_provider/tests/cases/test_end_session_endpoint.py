@@ -4,7 +4,6 @@ try:
     from urllib import urlencode
 except ImportError:
     from urllib.parse import urlencode
-
 from django.core.management import call_command
 from django.test import TestCase
 
