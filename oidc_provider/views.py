@@ -144,6 +144,12 @@ class AuthorizeView(View):
                     ):
                         return redirect(authorize.create_response_uri())
 
+                # no consent required
+                if not authorize.client.require_consent:
+                    authorize.set_client_user_consent()
+                    return redirect(authorize.create_response_uri())
+                #####################
+
                 if "none" in authorize.params["prompt"]:
                     raise AuthorizeError(
                         authorize.params["redirect_uri"], "consent_required", authorize.grant_type

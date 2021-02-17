@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from oidc_provider.lib.errors import RedirectUriError
+
 try:
     from urllib.parse import quote
     from urllib.parse import urlencode
@@ -17,6 +19,8 @@ import uuid
 from unittest.mock import Mock
 from unittest.mock import patch
 
+from django.contrib.auth.models import AnonymousUser
+from django.core.management import call_command
 from freezegun import freeze_time
 
 try:
@@ -24,8 +28,6 @@ try:
 except ImportError:
     from django.core.urlresolvers import reverse
 
-from django.contrib.auth.models import AnonymousUser
-from django.core.management import call_command
 from django.test import RequestFactory
 from django.test import TestCase
 from django.test import override_settings
@@ -33,7 +35,6 @@ from jwkest.jwt import JWT
 
 from oidc_provider import settings
 from oidc_provider.lib.endpoints.authorize import AuthorizeEndpoint
-from oidc_provider.lib.errors import RedirectUriError
 from oidc_provider.lib.utils.authorize import strip_prompt_login
 from oidc_provider.tests.app.utils import FAKE_CODE_CHALLENGE
 from oidc_provider.tests.app.utils import create_fake_client
@@ -362,23 +363,6 @@ class AuthorizationCodeFlowTestCase(TestCase, AuthorizeEndpointMixin):
             RedirectUriError.error, response.content.decode("utf-8"), msg="No redirect_uri error"
         )
 
-    def test_public_client_auto_approval(self):
-        """
-        It's recommended not auto-approving requests for non-confidential
-        clients using Authorization Code.
-        """
-        data = {
-            "client_id": self.client_public_with_no_consent.client_id,
-            "response_type": "code",
-            "redirect_uri": self.client_public_with_no_consent.default_redirect_uri,
-            "scope": "openid email",
-            "state": self.state,
-        }
-
-        response = self._auth_request("get", data, is_user_authenticated=True)
-
-        self.assertIn("Request for Permission", response.content.decode("utf-8"))
-
     def test_prompt_none_parameter(self):
         """
         Specifies whether the Authorization Server prompts the End-User for
@@ -584,6 +568,26 @@ class AuthorizationCodeFlowTestCase(TestCase, AuthorizeEndpointMixin):
         self.assertIn("prompt", strip_prompt_login(path3))
         self.assertIn("none", strip_prompt_login(path3))
         self.assertNotIn("login", strip_prompt_login(path3))
+
+    def test_no_consent_required(self):
+        """
+        Tests the case where consent is not required by client configuration
+        """
+        data = {
+            "client_id": self.client_public_with_no_consent.client_id,
+            "response_type": self.client_public_with_no_consent.response_type_values()[0],
+            "redirect_uri": self.client_public_with_no_consent.default_redirect_uri,
+            "scope": "openid email",
+            "state": self.state,
+            "prompt": "none",
+        }
+
+        response = self._auth_request("get", data)
+        self.assertIn("login_required", response["Location"])
+
+        response = self._auth_request("get", data, is_user_authenticated=True)
+        self.assertIn("code", response["Location"])
+        self.assertIn("state", response["Location"])
 
 
 class AuthorizationImplicitFlowTestCase(TestCase, AuthorizeEndpointMixin):
