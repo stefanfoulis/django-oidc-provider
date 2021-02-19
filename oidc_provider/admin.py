@@ -63,7 +63,6 @@ class ClientAdmin(admin.ModelAdmin):
                     "jwt_alg",
                     "require_consent",
                     "reuse_consent",
-                    "force_consent",
                 ),
             },
         ],
