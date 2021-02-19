@@ -78,11 +78,6 @@ class Client(models.Model):
         verbose_name=_('Require Consent?'),
         help_text=_('If disabled, the Server will NEVER ask the user for consent.'))
 
-    force_consent = models.BooleanField(
-        default=False,
-        verbose_name=_('Force Consent?'),
-        help_text=_('If enabled, the consent of the user is forced and skips the consent step.'))
-
     _redirect_uris = models.TextField(
         default='', verbose_name=_(u'Redirect URIs'),
         help_text=_(u'Enter each URI on a new line.'))
