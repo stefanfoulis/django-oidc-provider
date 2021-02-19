@@ -1,3 +1,5 @@
+import mock
+
 from oidc_provider.lib.errors import RedirectUriError
 
 try:
@@ -9,7 +11,7 @@ try:
 except ImportError:
     from urlparse import parse_qs, urlsplit
 import uuid
-from mock import patch, mock
+
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.management import call_command
@@ -325,22 +327,22 @@ class AuthorizationCodeFlowTestCase(TestCase, AuthorizeEndpointMixin):
         self.assertIn(
             RedirectUriError.error, response.content.decode('utf-8'), msg='No redirect_uri error')
 
-    def test_public_client_auto_approval(self):
-        """
-        It's recommended not auto-approving requests for non-confidential
-        clients using Authorization Code.
-        """
-        data = {
-            'client_id': self.client_public_with_no_consent.client_id,
-            'response_type': 'code',
-            'redirect_uri': self.client_public_with_no_consent.default_redirect_uri,
-            'scope': 'openid email',
-            'state': self.state,
-        }
-
-        response = self._auth_request('get', data, is_user_authenticated=True)
-
-        self.assertIn('Request for Permission', response.content.decode('utf-8'))
+    # def test_public_client_auto_approval(self):
+    #     """
+    #     It's recommended not auto-approving requests for non-confidential
+    #     clients using Authorization Code.
+    #     """
+    #     data = {
+    #         'client_id': self.client_public_with_no_consent.client_id,
+    #         'response_type': 'code',
+    #         'redirect_uri': self.client_public_with_no_consent.default_redirect_uri,
+    #         'scope': 'openid email',
+    #         'state': self.state,
+    #     }
+    #
+    #     response = self._auth_request('get', data, is_user_authenticated=True)
+    #
+    #     self.assertIn('Request for Permission', response.content.decode('utf-8'))
 
     def test_prompt_none_parameter(self):
         """
@@ -368,7 +370,7 @@ class AuthorizationCodeFlowTestCase(TestCase, AuthorizeEndpointMixin):
         # consent for the requested Claims.
         self.assertIn('consent_required', response['Location'])
 
-    @patch('oidc_provider.views.django_user_logout')
+    @mock.patch('oidc_provider.views.django_user_logout')
     def test_prompt_login_parameter(self, logout_function):
         """
         Specifies whether the Authorization Server prompts the End-User for
@@ -424,7 +426,7 @@ class AuthorizationCodeFlowTestCase(TestCase, AuthorizeEndpointMixin):
         response = self._auth_request('get', data, is_user_authenticated=True)
         self.assertIn('login_required', response['Location'])
 
-    @patch('oidc_provider.views.render')
+    @mock.patch('oidc_provider.views.render')
     def test_prompt_consent_parameter(self, render_patched):
         """
         Specifies whether the Authorization Server prompts the End-User for
@@ -496,6 +498,26 @@ class AuthorizationCodeFlowTestCase(TestCase, AuthorizeEndpointMixin):
         self.assertIn('prompt', strip_prompt_login(path3))
         self.assertIn('none', strip_prompt_login(path3))
         self.assertNotIn('login', strip_prompt_login(path3))
+
+    def test_no_consent_required(self):
+        """
+        Tests the case where consent is not required by client configuration
+        """
+        data = {
+            'client_id': self.client_public_with_no_consent.client_id,
+            'response_type': self.client_public_with_no_consent.response_type_values()[0],
+            'redirect_uri': self.client_public_with_no_consent.default_redirect_uri,
+            'scope': 'openid email',
+            'state': self.state,
+            'prompt': 'none'
+        }
+
+        response = self._auth_request('get', data)
+        self.assertIn('login_required', response['Location'])
+
+        response = self._auth_request('get', data, is_user_authenticated=True)
+        self.assertIn('code', response['Location'])
+        self.assertIn('state', response['Location'])
 
 
 class AuthorizationImplicitFlowTestCase(TestCase, AuthorizeEndpointMixin):
@@ -768,8 +790,8 @@ class TestCreateResponseURI(TestCase):
         self.request = factory.post(url, data=data)
         self.request.user = user
 
-    @patch('oidc_provider.lib.endpoints.authorize.create_code')
-    @patch('oidc_provider.lib.endpoints.authorize.logger.exception')
+    @mock.patch('oidc_provider.lib.endpoints.authorize.create_code')
+    @mock.patch('oidc_provider.lib.endpoints.authorize.logger.exception')
     def test_create_response_uri_logs_to_error(self, log_exception, create_code):
         """
         A lot can go wrong when creating a response uri and this is caught

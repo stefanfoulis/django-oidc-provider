@@ -77,6 +77,7 @@ class Client(models.Model):
         default=True,
         verbose_name=_('Require Consent?'),
         help_text=_('If disabled, the Server will NEVER ask the user for consent.'))
+
     _redirect_uris = models.TextField(
         default='', verbose_name=_(u'Redirect URIs'),
         help_text=_(u'Enter each URI on a new line.'))

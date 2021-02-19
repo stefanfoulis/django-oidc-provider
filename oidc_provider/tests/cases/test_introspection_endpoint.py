@@ -2,6 +2,7 @@ import time
 import random
 
 from mock import patch
+
 try:
     from urllib.parse import urlencode
 except ImportError:
