@@ -187,8 +187,9 @@ class TokenEndpoint(object):
             'refresh_token': token.refresh_token,
             'token_type': 'bearer',
             'expires_in': token.valid_for.seconds,
-            'id_token': encode_id_token(id_token_dic, token.client),
         }
+        if id_token_dic:
+            dic["id_token"] = encode_id_token(id_token_dic, token.client)
 
         return dic
 
@@ -235,9 +236,9 @@ class TokenEndpoint(object):
             'refresh_token': token.refresh_token,
             'token_type': 'bearer',
             'expires_in': token.valid_for.seconds,
-            'id_token': encode_id_token(id_token_dic, self.token.client),
         }
-
+        if id_token_dic:
+            dic['id_token'] = encode_id_token(id_token_dic, self.token.client)
         return dic
 
     def create_access_token_response_dic(self):
