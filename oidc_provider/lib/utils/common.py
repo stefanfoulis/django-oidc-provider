@@ -1,4 +1,6 @@
 from hashlib import sha224
+from urllib.parse import urlparse
+from urllib.parse import urlunparse
 
 import django
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -6,8 +8,6 @@ from django.http import HttpResponse
 from django.http import QueryDict
 from django.shortcuts import resolve_url
 from django.utils.cache import patch_vary_headers
-from django.utils.six.moves.urllib.parse import urlparse
-from django.utils.six.moves.urllib.parse import urlunparse
 
 from oidc_provider import settings
 
