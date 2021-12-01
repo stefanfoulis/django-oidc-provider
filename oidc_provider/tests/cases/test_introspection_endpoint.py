@@ -12,7 +12,7 @@ from django.test import RequestFactory
 from django.test import TestCase
 from django.test import override_settings
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 try:
     from django.urls import reverse
@@ -49,7 +49,7 @@ class IntrospectionTestCase(TestCase):
 
     def _assert_inactive(self, response):
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_text(response.content), {"active": False})
+        self.assertJSONEqual(force_str(response.content), {"active": False})
 
     def _assert_active(self, response, **kwargs):
         self.assertEqual(response.status_code, 200)
@@ -63,7 +63,7 @@ class IntrospectionTestCase(TestCase):
             "iss": "http://localhost:8000/openid",
         }
         expected_content.update(kwargs)
-        self.assertJSONEqual(force_text(response.content), expected_content)
+        self.assertJSONEqual(force_str(response.content), expected_content)
 
     def _make_request(self, **kwargs):
         url = reverse("oidc_provider:token-introspection")
@@ -134,7 +134,7 @@ class IntrospectionTestCase(TestCase):
         response = self._make_request()
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(
-            force_text(response.content),
+            force_str(response.content),
             {
                 "active": True,
                 "client_id": self.client.client_id,

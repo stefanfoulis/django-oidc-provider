@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from django.contrib import admin
 from django.forms import ModelForm
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from oidc_provider.models import Client
 from oidc_provider.models import Code
