@@ -1,4 +1,5 @@
-from django.utils.six.moves.urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse
+
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.shortcuts import resolve_url
 from hashlib import sha224

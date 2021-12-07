@@ -41,7 +41,7 @@ class JsonMultiSelectModelField(models.Field):
     def get_internal_type(self):
         return "TextField"
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection):
         if value is None:
             return value
         return self.to_python(value)
