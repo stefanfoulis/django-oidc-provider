@@ -6,7 +6,7 @@ from datetime import timedelta
 from Cryptodome.PublicKey.RSA import importKey
 from django.utils import dateformat
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from jwkest.jwk import RSAKey as jwk_RSAKey
 from jwkest.jwk import SYMKey
 from jwkest.jws import JWS
@@ -107,7 +107,7 @@ def hash_token(token):
     """
     returns the sha256 hash of the token
     """
-    return force_text(hashlib.sha256(token.encode("ascii")).hexdigest())
+    return force_str(hashlib.sha256(token.encode("ascii")).hexdigest())
 
 
 def default_create_token(
