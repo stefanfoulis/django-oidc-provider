@@ -1,7 +1,11 @@
+from urllib.parse import urlparse, urlunparse
+
+from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.shortcuts import resolve_url
 from hashlib import sha224
 
 import django
-from django.http import HttpResponse
+from django.http import HttpResponse, QueryDict
 from django.utils.cache import patch_vary_headers
 
 from oidc_provider import settings
@@ -142,13 +146,33 @@ def default_introspection_processing_hook(introspection_response, client, id_tok
     return introspection_response
 
 
-def get_browser_state_or_default(request):
+def default_get_browser_state_or_default(request):
     """
-    Determine value to use as session state.
+    The default implementation uses djangos session key as state, since django
+    will cycle the session key at login, logout and password change - which
+    suits us well.
+    If there is no session_key (probably means an anonymous user) we use a
+    static value.
     """
     key = (request.session.session_key or
            settings.get('OIDC_UNAUTHENTICATED_SESSION_MANAGEMENT_KEY'))
     return sha224(key.encode('utf-8')).hexdigest()
+
+
+def get_browser_state_or_default(request):
+    """
+    Determine value to use as browser session state.
+    The OP creates this value which should change whenever a meaningful state
+    change happens at the OP.
+
+    * User logs out
+    * Different user logs in
+    * Session expires
+
+    The RP uses this value to determine if it needs to talk to the OP
+    again to match its state (e.g logout).
+    """
+    return settings.get('OIDC_GET_BROWSER_STATE_OR_DEFAULT', import_str=True)(request)
 
 
 def run_processing_hook(subject, hook_settings_name, **kwargs):
@@ -184,3 +208,35 @@ def cors_allow_any(request, response):
         response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
 
     return response
+
+
+def redirect_to_login(next_page, login_url):
+    """
+    Redirects the user to the login page, passing the given 'next_page'.
+    This is similar to what django.contrib.auth.views.redirect_to_login does, but
+    returns an url instead of a response object.
+    """
+    resolved_url = resolve_url(login_url or settings.get('OIDC_LOGIN_URL'))
+
+    login_url_parts = list(urlparse(resolved_url))
+    querystring = QueryDict(login_url_parts[4], mutable=True)
+    querystring[REDIRECT_FIELD_NAME] = next_page
+    login_url_parts[4] = querystring.urlencode(safe='/')
+
+    return urlunparse(login_url_parts)
+
+
+def default_get_login_url(client, next_page, request):
+    return redirect_to_login(next_page, settings.get('OIDC_LOGIN_URL'))
+
+
+def get_login_url(**kwargs):
+    return settings.get('OIDC_GET_LOGIN_URL', import_str=True)(**kwargs)
+
+
+def default_redirect_uri_is_valid(client, redirect_uri):
+    return redirect_uri in client.redirect_uris
+
+
+def redirect_uri_is_valid(**kwargs):
+    return settings.get('OIDC_REDIRECT_URI_IS_VALID', import_str=True)(**kwargs)

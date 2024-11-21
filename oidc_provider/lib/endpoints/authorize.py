@@ -1,4 +1,3 @@
-from datetime import timedelta
 from hashlib import (
     md5,
     sha256,
@@ -11,29 +10,28 @@ except ImportError:
     from urllib.parse import urlsplit, parse_qs, urlunsplit, urlencode
 from uuid import uuid4
 
-from django.utils import timezone
-
 from oidc_provider.lib.claims import StandardScopeClaims
 from oidc_provider.lib.errors import (
     AuthorizeError,
     ClientIdError,
     RedirectUriError,
 )
+from oidc_provider.lib.utils.authorize import update_or_create_user_consent
 from oidc_provider.lib.utils.token import (
     create_code,
     create_id_token,
     create_token,
     encode_id_token,
 )
+from oidc_provider.lib.utils.common import redirect_uri_is_valid
 from oidc_provider.models import (
     UserConsent,
-    get_client_model
+    Client
 )
 from oidc_provider import settings
 from oidc_provider.lib.utils.common import get_browser_state_or_default
 
 logger = logging.getLogger(__name__)
-Client = get_client_model()
 
 
 class AuthorizeEndpoint(object):
@@ -97,7 +95,7 @@ class AuthorizeEndpoint(object):
         if self.is_authentication and not self.params['redirect_uri']:
             logger.debug('[Authorize] Missing redirect uri.')
             raise RedirectUriError()
-        if not (self.params['redirect_uri'] in self.client.redirect_uris):
+        if not redirect_uri_is_valid(client=self.client, redirect_uri=self.params['redirect_uri']):
             logger.debug('[Authorize] Invalid redirect uri: %s', self.params['redirect_uri'])
             raise RedirectUriError()
 
@@ -141,8 +139,8 @@ class AuthorizeEndpoint(object):
                     nonce=self.params['nonce'],
                     is_authentication=self.is_authentication,
                     code_challenge=self.params['code_challenge'],
-                    code_challenge_method=self.params['code_challenge_method'])
-                code.save()
+                    code_challenge_method=self.params['code_challenge_method'],
+                    request=self.request)
 
             if self.grant_type == 'authorization_code':
                 query_params['code'] = code.code
@@ -151,7 +149,8 @@ class AuthorizeEndpoint(object):
                 token = create_token(
                     user=self.request.user,
                     client=self.client,
-                    scope=self.params['scope'])
+                    scope=self.params['scope'],
+                    request=self.request)
 
                 # Check if response_type must include access_token in the response.
                 if (self.params['response_type'] in
@@ -190,7 +189,7 @@ class AuthorizeEndpoint(object):
 
                 query_fragment['token_type'] = 'bearer'
 
-                query_fragment['expires_in'] = settings.get('OIDC_TOKEN_EXPIRE')
+                query_fragment['expires_in'] = token.valid_for.seconds
 
                 query_fragment['state'] = self.params['state'] if self.params['state'] else ''
 
@@ -234,26 +233,12 @@ class AuthorizeEndpoint(object):
 
         Return None.
         """
-        date_given = timezone.now()
-        expires_at = date_given + timedelta(
-            days=settings.get('OIDC_SKIP_CONSENT_EXPIRE'))
-
-        uc, created = UserConsent.objects.get_or_create(
+        update_or_create_user_consent(
             user=self.request.user,
             client=self.client,
-            defaults={
-                'expires_at': expires_at,
-                'date_given': date_given,
-            }
+            scope=self.params['scope'],
+            request=self.request,
         )
-        uc.scope = self.params['scope']
-
-        # Rewrite expires_at and date_given if object already exists.
-        if not created:
-            uc.expires_at = expires_at
-            uc.date_given = date_given
-
-        uc.save()
 
     def client_has_user_consent(self):
         """

@@ -19,19 +19,18 @@ class DefaultSettings(object):
         return settings.LOGIN_URL
 
     @property
+    def OIDC_GET_LOGIN_URL(self):
+        """
+        OPTIONAL. A string with the location of your function.
+        """
+        return 'oidc_provider.lib.utils.common.default_get_login_url'
+
+    @property
     def SITE_URL(self):
         """
         OPTIONAL. The OP server url.
         """
         return None
-
-    @property
-    def OIDC_CLIENT_MODEL(self):
-        """
-        OPTIONAL.  Use a custom client model, typically used to extend the client model
-        with custom fields. The custom model should override oidc_provider.AbstractClient.
-        """
-        return 'oidc_provider.Client'
 
     @property
     def OIDC_AFTER_USERLOGIN_HOOK(self):
@@ -107,6 +106,10 @@ class DefaultSettings(object):
         return self._unauthenticated_session_management_key
 
     @property
+    def OIDC_GET_BROWSER_STATE_OR_DEFAULT(self):
+        return 'oidc_provider.lib.utils.common.default_get_browser_state_or_default'
+
+    @property
     def OIDC_SKIP_CONSENT_EXPIRE(self):
         """
         OPTIONAL. User consent expiration after been granted.
@@ -175,6 +178,46 @@ class DefaultSettings(object):
             'authorize': 'oidc_provider/authorize.html',
             'error': 'oidc_provider/error.html'
         }
+
+    @property
+    def OIDC_CREATE_CODE(self):
+        """
+        OPTIONAL. A string with the location of your function to create a new Code model instance.
+        """
+        return 'oidc_provider.lib.utils.token.default_create_code'
+
+    @property
+    def OIDC_CREATE_TOKEN(self):
+        """
+        OPTIONAL. A string with the location of your function to create a new Token model instance.
+        """
+        return 'oidc_provider.lib.utils.token.default_create_token'
+
+    @property
+    def OIDC_UPDATE_OR_CREATE_USER_CONSENT(self):
+        """
+        OPTIONAL. A string with the location of your function to create a new Token model instance.
+        """
+        return 'oidc_provider.lib.utils.authorize.default_update_or_create_user_consent'
+
+    @property
+    def OIDC_GET_VALID_REFRESH_TOKEN(self):
+        """
+        OPTIONAL. A string with the location of your function to get a valid token based on a
+        refresh token value. This can be used to add additional checks to determine if a
+        refresh token is still valid.
+        """
+        return 'oidc_provider.lib.utils.token.default_get_valid_refresh_token'
+
+    @property
+    def OIDC_REDIRECT_URI_IS_VALID(self):
+        """
+        OPTIONAL. A string with the location of your function to check whether a
+        redirect_uri should be allowed for a given client.
+        This can be used if the rules for redirect_uris is more complicated than
+        a static list.
+        """
+        return 'oidc_provider.lib.utils.common.default_redirect_uri_is_valid'
 
 
 default_settings = DefaultSettings()
