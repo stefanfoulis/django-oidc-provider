@@ -226,9 +226,10 @@ class TokenEndpoint(object):
             "access_token": token.access_token,
             "refresh_token": token.refresh_token,
             "token_type": "bearer",
-            "expires_in": settings.get("OIDC_TOKEN_EXPIRE"),
-            "id_token": encode_id_token(id_token_dic, token.client),
+            "expires_in": token.valid_for.seconds,
         }
+        if id_token_dic:
+            dic["id_token"] = encode_id_token(id_token_dic, token.client)
 
         return dic
 
@@ -274,10 +275,10 @@ class TokenEndpoint(object):
             "access_token": token.access_token,
             "refresh_token": token.refresh_token,
             "token_type": "bearer",
-            "expires_in": settings.get("OIDC_TOKEN_EXPIRE"),
-            "id_token": encode_id_token(id_token_dic, self.token.client),
+            "expires_in": token.valid_for.seconds,
         }
-
+        if id_token_dic:
+            dic["id_token"] = encode_id_token(id_token_dic, self.token.client)
         return dic
 
     def create_access_token_response_dic(self):
