@@ -20,12 +20,15 @@ from django.utils import dateformat
 
 from oidc_provider import settings
 from oidc_provider.lib.claims import StandardScopeClaims
-from oidc_provider.lib.errors import (AuthorizeError, ClientIdError,
-                                      RedirectUriError)
+from oidc_provider.lib.errors import AuthorizeError, ClientIdError, RedirectUriError
 from oidc_provider.lib.utils.authorize import update_or_create_user_consent
 from oidc_provider.lib.utils.common import get_browser_state_or_default
-from oidc_provider.lib.utils.token import (create_code, create_id_token,
-                                           create_token, encode_id_token)
+from oidc_provider.lib.utils.token import (
+    create_code,
+    create_id_token,
+    create_token,
+    encode_id_token,
+)
 from oidc_provider.models import Client, UserConsent
 
 logger = logging.getLogger(__name__)
@@ -216,7 +219,7 @@ class AuthorizeEndpoint(object):
 
                 query_fragment["token_type"] = "bearer"
 
-                query_fragment["expires_in"] = settings.get("OIDC_TOKEN_EXPIRE")
+                query_fragment["expires_in"] = token.valid_for.seconds
 
                 query_fragment["state"] = self.params["state"] if self.params["state"] else ""
 
