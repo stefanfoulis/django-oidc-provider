@@ -161,6 +161,7 @@ class Client(models.Model):
 
 class BaseCodeTokenModel(models.Model):
     client = models.ForeignKey(Client, verbose_name=_("Client"), on_delete=models.CASCADE)
+    issued_at = models.DateTimeField(default=timezone.now, verbose_name=_("Issue Date"))
     expires_at = models.DateTimeField(verbose_name=_("Expiration Date"))
     _scope = models.TextField(default="", verbose_name=_("Scopes"))
 
@@ -180,6 +181,13 @@ class BaseCodeTokenModel(models.Model):
 
     def has_expired(self):
         return timezone.now() >= self.expires_at
+
+    @property
+    def valid_for(self):
+        # We round to seconds so we get a more realistic value
+        issued_at = self.issued_at.replace(microsecond=0)
+        expires_at = self.expires_at.replace(microsecond=0)
+        return expires_at - issued_at
 
 
 class Code(BaseCodeTokenModel):
