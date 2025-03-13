@@ -12,21 +12,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13']
-        # django-version: ['41', '42', '50', '51']
-        # include:
-        #   - python-version: '3.8'
-        #     django-version: '32'
-        #   - python-version: '3.8'
-        #     django-version: '40'
-        #   - python-version: '3.9'
-        #     django-version: '32'
-        #   - python-version: '3.9'
-        #     django-version: '40'
-        #   - python-version: '3.10'
-        #     django-version: '32'
-        #   - python-version: '3.10'
-        #     django-version: '40'
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        test: ['django41', 'django42', 'django50', 'django51']
+        include:
+          - python-version: '3.11'
+            test: 'flake8'
+          - python-version: '3.11'
+            test: 'docs'
+          - python-version: '3.8'
+            test: 'django32'
+          - python-version: '3.8'
+            test: 'django40'
+          - python-version: '3.9'
+            test: 'django32'
+          - python-version: '3.9'
+            test: 'django40'
+          - python-version: '3.10'
+            test: 'django32'
+          - python-version: '3.10'
+            test: 'django40'
             
     steps:
     - uses: actions/checkout@v3
@@ -39,5 +43,5 @@ jobs:
         pip install tox tox-gh-actions
     - name: Run tox
       run: tox
-      # env:
-      #   TOXENV: django${{ matrix.django-version }}
+      env:
+        TOXENV: ${{ matrix.test }}
