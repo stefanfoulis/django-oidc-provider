@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from oidc_provider.lib.errors import TokenIntrospectionError
 from oidc_provider.lib.utils.common import run_processing_hook
 from oidc_provider.lib.utils.oauth2 import extract_client_auth
-from oidc_provider.lib.utils.token import get_by_access_token
+from oidc_provider.lib.utils.token import get_valid_access_token
 from oidc_provider.models import Token, Client
 from oidc_provider import settings
 
@@ -38,15 +38,7 @@ class TokenIntrospectionEndpoint(object):
         if not self.params['token']:
             logger.debug('[Introspection] No token provided')
             raise TokenIntrospectionError()
-        try:
-            self.token = get_by_access_token(self.params['token'])
-        except Token.DoesNotExist:
-            logger.debug('[Introspection] Token does not exist: %s', self.params['token'])
-            raise TokenIntrospectionError()
-        if self.token.has_expired():
-            logger.debug('[Introspection] Token is not valid: %s', self.params['token'])
-            raise TokenIntrospectionError()
-
+        
         try:
             self.client = Client.objects.get(
                 client_id=self.params['client_id'],
@@ -58,6 +50,19 @@ class TokenIntrospectionEndpoint(object):
         if INTROSPECTION_SCOPE not in self.client.scope:
             logger.debug('[Introspection] Client %s does not have introspection scope',
                          self.params['client_id'])
+            raise TokenIntrospectionError()
+        
+        try:
+            self.token = get_valid_access_token(
+                access_token=self.params['token'],
+                client=self.client,
+                request=self.request,
+            )
+        except Token.DoesNotExist:
+            logger.debug('[Introspection] Token does not exist: %s', self.params['token'])
+            raise TokenIntrospectionError()
+        if self.token.has_expired():
+            logger.debug('[Introspection] Token is not valid: %s', self.params['token'])
             raise TokenIntrospectionError()
 
         self.id_token = self.token.id_token
