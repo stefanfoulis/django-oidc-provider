@@ -55,6 +55,7 @@ class Client(models.Model):
     )
     client_id = models.CharField(max_length=255, unique=True, verbose_name=_("Client ID"))
     client_secret = models.CharField(max_length=255, blank=True, verbose_name=_("Client SECRET"))
+    client_secret_encrypted = models.CharField(max_length=255, blank=True)
     response_types = JSONMultiSelectModelField(
         choices=RESPONSE_TYPE_CHOICES, verbose_name=_("Response Types")
     )
@@ -196,6 +197,7 @@ class Code(BaseCodeTokenModel):
         settings.AUTH_USER_MODEL, verbose_name=_("User"), on_delete=models.CASCADE
     )
     code = models.CharField(max_length=255, unique=True, verbose_name=_("Code"))
+    code_encrypted = models.CharField(max_length=255, unique=True)
     nonce = models.CharField(max_length=255, blank=True, default="", verbose_name=_("Nonce"))
     is_authentication = models.BooleanField(default=False, verbose_name=_("Is Authentication?"))
     code_challenge = models.CharField(max_length=255, null=True, verbose_name=_("Code Challenge"))
@@ -222,6 +224,7 @@ class Token(BaseCodeTokenModel):
         help_text=_("Hashed version of the token for fast database lookups."),
     )
     access_token = models.TextField(verbose_name=_("Access Token"))
+    access_token_encrypted = models.TextField()
     refresh_token_hash = models.CharField(
         max_length=255,
         unique=True,
@@ -229,6 +232,7 @@ class Token(BaseCodeTokenModel):
         help_text=_("Hashed version of the token for fast database lookups."),
     )
     refresh_token = models.TextField(verbose_name=_("Refresh Token"))
+    refresh_token_encrypted = models.TextField()
     _id_token = models.TextField(verbose_name=_("ID Token"))
 
     class Meta:
