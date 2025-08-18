@@ -3,7 +3,7 @@ import time
 import uuid
 
 from base64 import b64encode
-from mock import patch
+from unittest.mock import patch
 
 try:
     from urllib.parse import urlencode

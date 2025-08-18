@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 
 try:
     from django.urls import include, re_path

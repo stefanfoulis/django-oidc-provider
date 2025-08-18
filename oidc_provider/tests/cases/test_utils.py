@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 from hashlib import sha224
 
-import mock
+from unittest import mock
 from django.http import HttpRequest
 from django.test import TestCase, override_settings
 from django.utils import timezone

@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 
 from oidc_provider.lib.errors import RedirectUriError
 
