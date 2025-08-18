@@ -46,6 +46,7 @@ class Client(models.Model):
                     u' of their credentials. <b>Public</b> clients are incapable.'))
     client_id = models.CharField(max_length=255, unique=True, verbose_name=_(u'Client ID'))
     client_secret = models.CharField(max_length=255, blank=True, verbose_name=_(u'Client SECRET'))
+    client_secret_encrypted = models.CharField(max_length=255, blank=True)
     response_types = JsonMultiSelectModelField(
         choices=RESPONSE_TYPE_CHOICES, verbose_name=_('Response Types'))
     jwt_alg = models.CharField(
@@ -183,6 +184,7 @@ class Code(BaseCodeTokenModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, verbose_name=_(u'User'), on_delete=models.CASCADE)
     code = models.CharField(max_length=255, unique=True, verbose_name=_(u'Code'))
+    code_encrypted = models.CharField(max_length=255, unique=True)
     nonce = models.CharField(max_length=255, blank=True, default='', verbose_name=_(u'Nonce'))
     is_authentication = models.BooleanField(default=False, verbose_name=_(u'Is Authentication?'))
     code_challenge = models.CharField(max_length=255, null=True, verbose_name=_(u'Code Challenge'))
@@ -205,10 +207,12 @@ class Token(BaseCodeTokenModel):
         max_length=255, unique=True, verbose_name=_(u'Access Token Lookup'),
         help_text=_('Hashed version of the token for fast database lookups.'))
     access_token = models.TextField(verbose_name=_(u'Access Token'))
+    access_token_encrypted = models.TextField()
     refresh_token_hash = models.CharField(
         max_length=255, unique=True, verbose_name=_(u'Refresh Token Lookup'),
         help_text=_('Hashed version of the token for fast database lookups.'))
     refresh_token = models.TextField(verbose_name=_(u'Refresh Token'))
+    refresh_token_encrypted = models.TextField()
     _id_token = models.TextField(verbose_name=_(u'ID Token'))
 
     class Meta:

@@ -225,6 +225,7 @@ def _get_token(raw_token, fieldname, client=None):
     hashed_token = hash_token(raw_token)
     token = qs.get(**{hash_fieldname: hashed_token})
     # TODO: decrypt token
+    # FIXME
 
     if getattr(token, fieldname) != raw_token:
         # Suspicious. Bad hash in database or hash collision attack.
