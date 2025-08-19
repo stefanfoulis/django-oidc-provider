@@ -19,6 +19,13 @@ class DefaultSettings(object):
         return settings.LOGIN_URL
 
     @property
+    def OIDC_GET_LOGIN_URL(self):
+        """
+        OPTIONAL. A string with the location of your function.
+        """
+        return 'oidc_provider.lib.utils.common.default_get_login_url'
+
+    @property
     def SITE_URL(self):
         """
         OPTIONAL. The OP server url.
@@ -188,6 +195,46 @@ class DefaultSettings(object):
         OPTIONAL: A boolean to specify whether or not to include scope in introspection response.
         """
         return False
+
+    @property
+    def OIDC_CREATE_CODE(self):
+        """
+        OPTIONAL. A string with the location of your function to create a new Code model instance.
+        """
+        return 'oidc_provider.lib.utils.token.default_create_code'
+
+    @property
+    def OIDC_CREATE_TOKEN(self):
+        """
+        OPTIONAL. A string with the location of your function to create a new Token model instance.
+        """
+        return 'oidc_provider.lib.utils.token.default_create_token'
+
+    @property
+    def OIDC_UPDATE_OR_CREATE_USER_CONSENT(self):
+        """
+        OPTIONAL. A string with the location of your function to create a new Token model instance.
+        """
+        return 'oidc_provider.lib.utils.authorize.default_update_or_create_user_consent'
+
+    @property
+    def OIDC_GET_VALID_REFRESH_TOKEN(self):
+        """
+        OPTIONAL. A string with the location of your function to get a valid token based on a
+        refresh token value. This can be used to add additional checks to determine if a
+        refresh token is still valid.
+        """
+        return 'oidc_provider.lib.utils.token.default_get_valid_refresh_token'
+
+    @property
+    def OIDC_REDIRECT_URI_IS_VALID(self):
+        """
+        OPTIONAL. A string with the location of your function to check whether a
+        redirect_uri should be allowed for a given client.
+        This can be used if the rules for redirect_uris is more complicated than
+        a static list.
+        """
+        return 'oidc_provider.lib.utils.common.default_redirect_uri_is_valid'
 
 
 default_settings = DefaultSettings()

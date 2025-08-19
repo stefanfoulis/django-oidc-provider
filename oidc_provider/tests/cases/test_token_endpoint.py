@@ -17,9 +17,7 @@ except ImportError:
 from django.core.management import call_command
 from django.db import DatabaseError
 from django.http import JsonResponse
-from django.test import RequestFactory
-from django.test import TestCase
-from django.test import override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.views.decorators.http import require_http_methods
 from jwkest.jwk import KEYS
 from jwkest.jws import JWS
@@ -27,18 +25,18 @@ from jwkest.jwt import JWT
 
 from oidc_provider.lib.endpoints.introspection import INTROSPECTION_SCOPE
 from oidc_provider.lib.utils.oauth2 import protected_resource_view
-from oidc_provider.lib.utils.token import create_code
+from oidc_provider.lib.utils.token import create_code, get_by_access_token
 from oidc_provider.models import Token
-from oidc_provider.tests.app.utils import FAKE_CODE_CHALLENGE
-from oidc_provider.tests.app.utils import FAKE_CODE_VERIFIER
-from oidc_provider.tests.app.utils import FAKE_NONCE
-from oidc_provider.tests.app.utils import FAKE_RANDOM_STRING
-from oidc_provider.tests.app.utils import FAKE_USER_PASSWORD
-from oidc_provider.tests.app.utils import create_fake_client
-from oidc_provider.tests.app.utils import create_fake_user
-from oidc_provider.views import JwksView
-from oidc_provider.views import TokenView
-from oidc_provider.views import userinfo
+from oidc_provider.tests.app.utils import (
+    FAKE_CODE_CHALLENGE,
+    FAKE_CODE_VERIFIER,
+    FAKE_NONCE,
+    FAKE_RANDOM_STRING,
+    FAKE_USER_PASSWORD,
+    create_fake_client,
+    create_fake_user,
+)
+from oidc_provider.views import JwksView, TokenView, userinfo
 
 
 class TokenTestCase(TestCase):
@@ -140,6 +138,7 @@ class TokenTestCase(TestCase):
             scope=(scope if scope else TokenTestCase.SCOPE_LIST),
             nonce=FAKE_NONCE,
             is_authentication=True,
+            request=None,
         )
         code.save()
 
@@ -791,6 +790,7 @@ class TokenTestCase(TestCase):
             is_authentication=True,
             code_challenge=FAKE_CODE_CHALLENGE,
             code_challenge_method="S256",
+            request=None,
         )
         code.save()
 
@@ -895,7 +895,7 @@ class TokenTestCase(TestCase):
 
         response = self._post_request(self._client_credentials_post_data())
         response_dict = json.loads(response.content.decode("utf-8"))
-        token = Token.objects.get(access_token=response_dict["access_token"])
+        token = get_by_access_token(access_token=response_dict["access_token"])
         self.assertTrue(str(token))
 
     @override_settings(OIDC_GRANT_TYPE_PASSWORD_ENABLE=True)
@@ -973,4 +973,5 @@ class TokenTestCase(TestCase):
 
         response_dict = json.loads(response.content.decode("utf-8"))
         self.assertEqual(200, response.status_code)
+        self.assertEqual("email openid", response_dict["scope"])
         self.assertEqual("email openid", response_dict["scope"])

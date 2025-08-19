@@ -14,7 +14,6 @@ except ImportError:
     from urllib.parse import urlunsplit
 
 from Cryptodome.PublicKey import RSA
-from django.contrib.auth.views import redirect_to_login
 
 try:
     from django.urls import reverse
@@ -52,12 +51,13 @@ from oidc_provider.lib.errors import UserAuthError
 from oidc_provider.lib.utils.authorize import strip_prompt_login
 from oidc_provider.lib.utils.common import cors_allow_any
 from oidc_provider.lib.utils.common import get_issuer
+from oidc_provider.lib.utils.common import get_login_url
 from oidc_provider.lib.utils.common import get_site_url
 from oidc_provider.lib.utils.common import redirect
 from oidc_provider.lib.utils.oauth2 import protected_resource_view
 from oidc_provider.lib.utils.token import client_id_from_id_token
+from oidc_provider.models import RESPONSE_TYPE_CHOICES
 from oidc_provider.models import Client
-from oidc_provider.models import ResponseType
 from oidc_provider.models import RSAKey
 
 logger = logging.getLogger(__name__)
@@ -91,7 +91,11 @@ class AuthorizeView(View):
                     else:
                         django_user_logout(request)
                         next_page = strip_prompt_login(request.get_full_path())
-                        return redirect_to_login(next_page, settings.get("OIDC_LOGIN_URL"))
+                        return redirect(
+                            get_login_url(
+                                client=authorize.client, next_page=next_page, request=request
+                            )
+                        )
 
                 if "select_account" in authorize.params["prompt"]:
                     # TODO: see how we can support multiple accounts for the end-user.
@@ -103,8 +107,12 @@ class AuthorizeView(View):
                         )
                     else:
                         django_user_logout(request)
-                        return redirect_to_login(
-                            request.get_full_path(), settings.get("OIDC_LOGIN_URL")
+                        return redirect(
+                            get_login_url(
+                                client=authorize.client,
+                                next_page=request.get_full_path(),
+                                request=request,
+                            )
                         )
 
                 if {"none", "consent"}.issubset(authorize.params["prompt"]):
@@ -114,8 +122,12 @@ class AuthorizeView(View):
 
                 if authorize.is_authentication_age_is_greater_than_max_age():
                     django_user_logout(request)
-                    return redirect_to_login(
-                        request.get_full_path(), settings.get("OIDC_LOGIN_URL")
+                    return redirect(
+                        get_login_url(
+                            client=authorize.client,
+                            next_page=request.get_full_path(),
+                            request=request,
+                        )
                     )
 
                 if not authorize.client.require_consent and (
@@ -163,9 +175,15 @@ class AuthorizeView(View):
                     )
                 if "login" in authorize.params["prompt"]:
                     next_page = strip_prompt_login(request.get_full_path())
-                    return redirect_to_login(next_page, settings.get("OIDC_LOGIN_URL"))
+                    return redirect(
+                        get_login_url(client=authorize.client, next_page=next_page, request=request)
+                    )
 
-                return redirect_to_login(request.get_full_path(), settings.get("OIDC_LOGIN_URL"))
+                return redirect(
+                    get_login_url(
+                        client=authorize.client, next_page=request.get_full_path(), request=request
+                    )
+                )
 
         except (ClientIdError, RedirectUriError) as error:
             context = {
@@ -276,16 +294,6 @@ def userinfo(request, *args, **kwargs):
 
 
 class ProviderInfoView(View):
-    _types_supported = None
-
-    @property
-    def types_supported(self):
-        if self._types_supported is None:
-            self._types_supported = [
-                response_type.value for response_type in ResponseType.objects.all()
-            ]
-        return self._types_supported
-
     def _build_response_dict(self, request):
         dic = dict()
 
@@ -298,7 +306,7 @@ class ProviderInfoView(View):
         dic["end_session_endpoint"] = site_url + reverse("oidc_provider:end-session")
         dic["introspection_endpoint"] = site_url + reverse("oidc_provider:token-introspection")
 
-        dic["response_types_supported"] = self.types_supported
+        dic["response_types_supported"] = [code for code, _description in RESPONSE_TYPE_CHOICES]
 
         dic["jwks_uri"] = site_url + reverse("oidc_provider:jwks")
 
