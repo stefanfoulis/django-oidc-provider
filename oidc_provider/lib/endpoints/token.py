@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from oidc_provider import settings
 from oidc_provider.lib.errors import TokenError
 from oidc_provider.lib.errors import UserAuthError
+from oidc_provider.lib.utils.common import redirect_uri_is_valid
 from oidc_provider.lib.utils.oauth2 import extract_client_auth
 from oidc_provider.lib.utils.token import create_id_token
 from oidc_provider.lib.utils.token import create_token
@@ -63,7 +64,9 @@ class TokenEndpoint(object):
                 raise TokenError("invalid_client")
 
         if self.params["grant_type"] == "authorization_code":
-            if self.params["redirect_uri"] not in self.client.redirect_uris:
+            if not redirect_uri_is_valid(
+                client=self.client, redirect_uri=self.params["redirect_uri"]
+            ):
                 logger.debug("[Token] Invalid redirect uri: %s", self.params["redirect_uri"])
                 raise TokenError("invalid_client")
 
