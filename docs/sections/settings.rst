@@ -293,3 +293,13 @@ A flag which toggles whether the scope is returned with successful response on i
 Must be ``True`` to include ``scope`` into the successful response
 
 Default is ``False``.
+
+
+OIDC_GET_LOGIN_URL
+==================
+
+OPTIONAL. A string with the location of your function. Allows dynamically generating the login
+url based on context like the `client`.
+Default is::
+
+    'oidc_provider.lib.utils.common.default_get_login_url'
