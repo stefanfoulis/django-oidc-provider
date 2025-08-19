@@ -23,6 +23,7 @@ from oidc_provider.lib.claims import StandardScopeClaims
 from oidc_provider.lib.errors import AuthorizeError, ClientIdError, RedirectUriError
 from oidc_provider.lib.utils.authorize import update_or_create_user_consent
 from oidc_provider.lib.utils.common import get_browser_state_or_default
+from oidc_provider.lib.utils.common import redirect_uri_is_valid
 from oidc_provider.lib.utils.token import (
     create_code,
     create_id_token,
@@ -95,7 +96,7 @@ class AuthorizeEndpoint(object):
         if self.is_authentication and not self.params["redirect_uri"]:
             logger.debug("[Authorize] Missing redirect uri.")
             raise RedirectUriError()
-        if self.params["redirect_uri"] not in self.client.redirect_uris:
+        if not redirect_uri_is_valid(client=self.client, redirect_uri=self.params["redirect_uri"]):
             logger.debug("[Authorize] Invalid redirect uri: %s", self.params["redirect_uri"])
             raise RedirectUriError()
 
