@@ -237,6 +237,9 @@ def _get_token(raw_token, fieldname, client=None):
     hash_fieldname = "{}_hash".format(fieldname)
     hashed_token = hash_token(raw_token)
     token = qs.get(**{hash_fieldname: hashed_token})
+    # TODO: decrypt token
+    # FIXME
+
     if getattr(token, fieldname) != raw_token:
         # Suspicious. Bad hash in database or hash collision attack.
         raise Token.DoesNotExist("%s matching query does not exist." % Token._meta.object_name)
@@ -245,6 +248,14 @@ def _get_token(raw_token, fieldname, client=None):
 
 def get_by_access_token(access_token, client=None):
     return _get_token(raw_token=access_token, fieldname="access_token", client=client)
+
+
+def default_get_valid_access_token(access_token, client, request):
+    return get_by_access_token(access_token=access_token, client=client)
+
+
+def get_valid_access_token(**kwargs):
+    return settings.get("OIDC_GET_VALID_ACCESS_TOKEN", import_str=True)(**kwargs)
 
 
 def get_by_refresh_token(refresh_token, client=None):
