@@ -3,14 +3,11 @@ import time
 import uuid
 from datetime import timedelta
 
-from Cryptodome.PublicKey.RSA import importKey
+import jwt
+from cryptography.hazmat.primitives import serialization
 from django.utils import dateformat
 from django.utils import timezone
 from django.utils.encoding import force_str
-from jwkest.jwk import RSAKey as jwk_RSAKey
-from jwkest.jwk import SYMKey
-from jwkest.jws import JWS
-from jwkest.jwt import JWT
 
 from oidc_provider import settings
 from oidc_provider.lib.claims import StandardScopeClaims
@@ -76,9 +73,24 @@ def encode_id_token(payload, client):
     Represent the ID Token as a JSON Web Token (JWT).
     Return a hash.
     """
-    keys = get_client_alg_keys(client)
-    _jws = JWS(payload, alg=client.jwt_alg)
-    return _jws.sign_compact(keys)
+    if client.jwt_alg == "RS256":
+        # For RS256, always use the first (newest) RSA key for signing
+        rsakeys = RSAKey.objects.all()
+        if not rsakeys:
+            raise Exception("You must add at least one RSA Key.")
+
+        # Get the first RSA key and convert it to cryptography format
+        rsakey = rsakeys.first()
+        crypto_private_key = serialization.load_pem_private_key(
+            rsakey.key.encode('utf-8'), password=None
+        )
+        
+        return jwt.encode(payload, crypto_private_key, algorithm="RS256")
+    elif client.jwt_alg == "HS256":
+        # For HS256, use the client secret
+        return jwt.encode(payload, client.client_secret, algorithm="HS256")
+    else:
+        raise Exception("Unsupported key algorithm.")
 
 
 def decode_id_token(token, client):
@@ -86,8 +98,35 @@ def decode_id_token(token, client):
     Represent the ID Token as a JSON Web Token (JWT).
     Return a hash.
     """
-    keys = get_client_alg_keys(client)
-    return JWS().verify_compact(token, keys=keys)
+    if client.jwt_alg == "RS256":
+        # For RS256, try all RSA keys for verification (graceful key rollover)
+        rsakeys = RSAKey.objects.all()
+        if not rsakeys:
+            raise Exception("You must add at least one RSA Key.")
+        
+        # Try each key until one works
+        last_exception = None
+        for rsakey in rsakeys:
+            try:
+                crypto_private_key = serialization.load_pem_private_key(
+                    rsakey.key.encode('utf-8'), password=None
+                )
+                public_key = crypto_private_key.public_key()
+                
+                # Try to decode with this key
+                return jwt.decode(token, public_key, algorithms=["RS256"], options={"verify_aud": False})
+            except Exception as e:
+                last_exception = e
+                continue
+        
+        # If we get here, none of the keys worked
+        raise last_exception or Exception("No RSA key could verify the token")
+        
+    elif client.jwt_alg == "HS256":
+        # For HS256, use the client secret
+        return jwt.decode(token, client.client_secret, algorithms=["HS256"], options={"verify_aud": False})
+    else:
+        raise Exception("Unsupported key algorithm.")
 
 
 def client_id_from_id_token(id_token):
@@ -95,13 +134,17 @@ def client_id_from_id_token(id_token):
     Extracts the client id from a JSON Web Token (JWT).
     Returns a string or None.
     """
-    payload = JWT().unpack(id_token).payload()
-    aud = payload.get("aud", None)
-    if aud is None:
+    try:
+        # Decode without verification to extract payload
+        payload = jwt.decode(id_token, options={"verify_signature": False})
+        aud = payload.get("aud", None)
+        if aud is None:
+            return None
+        if isinstance(aud, list):
+            return aud[0]
+        return aud
+    except Exception:
         return None
-    if isinstance(aud, list):
-        return aud[0]
-    return aud
 
 
 def hash_token(token):
@@ -211,23 +254,51 @@ def create_code(*args, **kwargs):
     return settings.get("OIDC_CREATE_CODE", import_str=True)(*args, **kwargs)
 
 
-def get_client_alg_keys(client):
+def get_client_alg_keys(client, for_verification=False):
     """
-    Takes a client and returns the set of keys associated with it.
-    Returns a list of keys.
+    Takes a client and returns the appropriate key for signing/verification.
+    
+    NOTE: For RS256, this function now returns only the first key.
+    For graceful key rollover:
+    - encode_id_token() uses the first (newest) key for signing
+    - decode_id_token() tries all keys for verification
+    
+    This function is kept for backwards compatibility and specific use cases.
+
+    Args:
+        client: The client object
+        for_verification: If True, returns public key for RS256 (for verification).
+                         If False, returns private key for RS256 (for signing).
+
+    Returns:
+        For RS256: cryptography RSA private key (signing) or public key (verification)
+        For HS256: the client secret string (same for both signing and verification)
     """
     if client.jwt_alg == "RS256":
-        keys = []
-        for rsakey in RSAKey.objects.all():
-            keys.append(jwk_RSAKey(key=importKey(rsakey.key), kid=rsakey.kid))
-        if not keys:
+        # For RSA256, we return the first available RSA key
+        # PyJWT expects a single key, not a list
+        rsakeys = RSAKey.objects.all()
+        if not rsakeys:
             raise Exception("You must add at least one RSA Key.")
+
+        # Get the first RSA key and convert it to cryptography format
+        rsakey = rsakeys.first()
+        crypto_private_key = serialization.load_pem_private_key(
+            rsakey.key.encode('utf-8'), password=None
+        )
+
+        if for_verification:
+            # Return public key for verification
+            return crypto_private_key.public_key()
+        else:
+            # Return private key for signing
+            return crypto_private_key
+
     elif client.jwt_alg == "HS256":
-        keys = [SYMKey(key=client.client_secret, alg=client.jwt_alg)]
+        # For HMAC, return the client secret directly (same for signing and verification)
+        return client.client_secret
     else:
         raise Exception("Unsupported key algorithm.")
-
-    return keys
 
 
 def _get_token(raw_token, fieldname, client=None):
