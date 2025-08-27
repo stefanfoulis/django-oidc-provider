@@ -13,12 +13,14 @@ except ImportError:
     from urllib.parse import urlsplit
     from urllib.parse import urlunsplit
 
-from Cryptodome.PublicKey import RSA
+from cryptography.hazmat.primitives import serialization
 
 try:
     from django.urls import reverse
 except ImportError:
     from django.core.urlresolvers import reverse
+
+import base64
 
 from django.contrib.auth import logout as django_user_logout
 from django.core.cache import cache
@@ -33,7 +35,19 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
 from django.views.generic import View
-from jwkest import long_to_base64
+
+
+def long_to_base64(long_int):
+    """Convert a long integer to base64url encoded string."""
+    # Convert long to bytes
+    # Calculate the number of bytes needed
+    byte_length = (long_int.bit_length() + 7) // 8
+    if byte_length == 0:
+        byte_length = 1
+    long_bytes = long_int.to_bytes(byte_length, byteorder="big")
+    # Encode as base64url (no padding)
+    return base64.urlsafe_b64encode(long_bytes).rstrip(b"=").decode("ascii")
+
 
 from oidc_provider import settings
 from oidc_provider import signals
@@ -372,15 +386,23 @@ class JwksView(View):
         dic = dict(keys=[])
 
         for rsakey in RSAKey.objects.all():
-            public_key = RSA.importKey(rsakey.key).publickey()
+            # Load the private key and extract public key components
+            private_key = serialization.load_pem_private_key(
+                rsakey.key.encode('utf-8'), password=None
+            )
+            public_key = private_key.public_key()
+            
+            # Get the public key numbers
+            public_numbers = public_key.public_numbers()
+            
             dic["keys"].append(
                 {
                     "kty": "RSA",
                     "alg": "RS256",
                     "use": "sig",
                     "kid": rsakey.kid,
-                    "n": long_to_base64(public_key.n),
-                    "e": long_to_base64(public_key.e),
+                    "n": long_to_base64(public_numbers.n),
+                    "e": long_to_base64(public_numbers.e),
                 }
             )
 

@@ -21,6 +21,9 @@ from django.test import RequestFactory
 from django.test import TestCase
 from django.test import override_settings
 from django.views.decorators.http import require_http_methods
+
+# TODO: Temporarily keeping jwkest to validate the pyjwt+cryptography responses
+#       match the previous behaviour
 from jwkest.jwk import KEYS
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
