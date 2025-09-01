@@ -5,6 +5,7 @@ from base64 import b64decode
 from django.http import HttpResponse
 
 from oidc_provider.lib.errors import BearerTokenError
+from oidc_provider.lib.utils.token import get_by_access_token
 from oidc_provider.models import Token
 
 logger = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ def protected_resource_view(scopes=None):
 
             try:
                 try:
-                    kwargs["token"] = Token.objects.get(access_token=access_token)
+                    kwargs["token"] = get_by_access_token(access_token=access_token)
                 except Token.DoesNotExist:
                     logger.debug("[UserInfo] Token does not exist: %s", access_token)
                     raise BearerTokenError("invalid_token")

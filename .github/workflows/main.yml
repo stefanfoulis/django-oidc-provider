@@ -8,6 +8,10 @@ concurrency:
   group: check-${{ github.ref }}
   cancel-in-progress: true
 
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   formatting:
     name: "Check Code Formatting"
