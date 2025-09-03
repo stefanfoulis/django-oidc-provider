@@ -34,6 +34,7 @@ from oidc_provider.lib.utils.oauth2 import protected_resource_view
 from oidc_provider.lib.utils.token import create_code
 from oidc_provider.lib.utils.token import decode_id_token
 from oidc_provider.lib.utils.token import encode_id_token
+from oidc_provider.lib.utils.token import get_by_access_token
 from oidc_provider.lib.utils.token import get_client_alg_keys
 from oidc_provider.models import RSAKey
 from oidc_provider.models import Token
@@ -148,6 +149,7 @@ class TokenTestCase(TestCase):
             scope=(scope if scope else TokenTestCase.SCOPE_LIST),
             nonce=FAKE_NONCE,
             is_authentication=True,
+            request=None,
         )
         code.save()
 
@@ -796,6 +798,7 @@ class TokenTestCase(TestCase):
             is_authentication=True,
             code_challenge=FAKE_CODE_CHALLENGE,
             code_challenge_method="S256",
+            request=None,
         )
         code.save()
 
@@ -900,7 +903,7 @@ class TokenTestCase(TestCase):
 
         response = self._post_request(self._client_credentials_post_data())
         response_dict = json.loads(response.content.decode("utf-8"))
-        token = Token.objects.get(access_token=response_dict["access_token"])
+        token = get_by_access_token(access_token=response_dict["access_token"])
         self.assertTrue(str(token))
 
     @override_settings(OIDC_GRANT_TYPE_PASSWORD_ENABLE=True)
