@@ -1,4 +1,4 @@
-from datetime import datetime
+from django.utils import timezone
 
 from oidc_provider.lib.errors import RedirectUriError
 
@@ -309,7 +309,6 @@ class AuthorizationCodeFlowTestCase(TestCase, AuthorizeEndpointMixin):
         params = parse_qs(parsed.query or parsed.fragment)
         state = params["state"][0]
         self.assertEqual(self.state, state, msg="State returned is invalid or missing")
-
         is_code_ok = is_code_valid(
             url=response["Location"], user=self.user, client=self.client_code
         )
@@ -494,7 +493,7 @@ class AuthorizationCodeFlowTestCase(TestCase, AuthorizeEndpointMixin):
         Authorization request, the OP MUST attempt to actively re-authenticate the End-User.
         See: https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
         """
-        self.user.last_login = datetime.now()
+        self.user.last_login = timezone.now()
         self.user.save()
 
         frozen_time.move_to("2024-01-20 00:15:00")
@@ -519,7 +518,7 @@ class AuthorizationCodeFlowTestCase(TestCase, AuthorizeEndpointMixin):
     def test_max_age_should_not_re_authenticate_user(
         self, logout_patched, render_patched, frozen_time
     ):
-        self.user.last_login = datetime.now()
+        self.user.last_login = timezone.now()
         self.user.save()
 
         frozen_time.move_to("2024-01-20 00:08:00")

@@ -220,6 +220,15 @@ class DefaultSettings(object):
         return "oidc_provider.lib.utils.authorize.default_update_or_create_user_consent"
 
     @property
+    def OIDC_GET_VALID_ACCESS_TOKEN(self):
+        """
+        OPTIONAL. A string with the location of your function to get a valid token based on a
+        access token value. This can be used to add additional checks to determine if a
+        access token is still valid.
+        """
+        return "oidc_provider.lib.utils.token.default_get_valid_access_token"
+
+    @property
     def OIDC_GET_VALID_REFRESH_TOKEN(self):
         """
         OPTIONAL. A string with the location of your function to get a valid token based on a
@@ -237,6 +246,15 @@ class DefaultSettings(object):
         a static list.
         """
         return "oidc_provider.lib.utils.common.default_redirect_uri_is_valid"
+
+    @property
+    def OIDC_DB_CIPHER_REGISTRY(self):
+        """
+        OPTIONAL. The cipher registry to use for the encrypted db fields.
+        The default registry only contains a plaintext cipher,
+        so DOES NOT ENCRYPT YOUR DATA.
+        """
+        return "oidc_provider.fields_encrypted_ciphers.default_registry"
 
 
 default_settings = DefaultSettings()

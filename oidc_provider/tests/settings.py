@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.admin",
     "oidc_provider",
+    "oidc_provider.tests.app.encrypted_field_test_app",
 ]
 
 ROOT_URLCONF = "oidc_provider.tests.app.urls"
