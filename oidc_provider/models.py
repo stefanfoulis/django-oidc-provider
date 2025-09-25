@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from oidc_provider.fields import JSONMultiSelectModelField
+from oidc_provider.fields_encrypted import EncryptedTextField
 
 CLIENT_TYPE_CHOICES = [
     ("confidential", "Confidential"),
@@ -54,7 +55,7 @@ class Client(models.Model):
         ),
     )
     client_id = models.CharField(max_length=255, unique=True, verbose_name=_("Client ID"))
-    client_secret = models.CharField(max_length=255, blank=True, verbose_name=_("Client SECRET"))
+    client_secret = EncryptedTextField(blank=True, null=True)
     response_types = JSONMultiSelectModelField(
         choices=RESPONSE_TYPE_CHOICES, verbose_name=_("Response Types")
     )
@@ -195,6 +196,9 @@ class Code(BaseCodeTokenModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, verbose_name=_("User"), on_delete=models.CASCADE
     )
+    # NOTE: In theory we should encrypt the code field as well, but there are technical challenges
+    # to doing that because the code needs to be queried directly in the database.
+    # Since the code is short-lived and single-use, we accept the risk of storing it in plaintext.
     code = models.CharField(max_length=255, unique=True, verbose_name=_("Code"))
     nonce = models.CharField(max_length=255, blank=True, default="", verbose_name=_("Nonce"))
     is_authentication = models.BooleanField(default=False, verbose_name=_("Is Authentication?"))
@@ -221,14 +225,14 @@ class Token(BaseCodeTokenModel):
         verbose_name=_("Access Token Lookup"),
         help_text=_("Hashed version of the token for fast database lookups."),
     )
-    access_token = models.TextField(verbose_name=_("Access Token"))
+    access_token = EncryptedTextField(null=True, blank=True)
     refresh_token_hash = models.CharField(
         max_length=255,
         unique=True,
         verbose_name=_("Refresh Token Lookup"),
         help_text=_("Hashed version of the token for fast database lookups."),
     )
-    refresh_token = models.TextField(verbose_name=_("Refresh Token"))
+    refresh_token = EncryptedTextField(null=True, blank=True)
     _id_token = models.TextField(verbose_name=_("ID Token"))
 
     class Meta:
@@ -270,7 +274,7 @@ class UserConsent(BaseCodeTokenModel):
 
 
 class RSAKey(models.Model):
-    key = models.TextField(verbose_name=_("Key"), help_text=_("Paste your private RSA Key here."))
+    key = EncryptedTextField(null=True, blank=True)
 
     class Meta:
         ordering = ["id"]

@@ -22,8 +22,6 @@ class ClientForm(ModelForm):
         super(ClientForm, self).__init__(*args, **kwargs)
         self.fields["client_id"].required = False
         self.fields["client_id"].widget.attrs["disabled"] = "true"
-        self.fields["client_secret"].required = False
-        self.fields["client_secret"].widget.attrs["disabled"] = "true"
         self.fields["jwt_alg"].required = False
 
     def clean_client_id(self):
@@ -73,7 +71,11 @@ class ClientAdmin(admin.ModelAdmin):
         [
             _("Credentials"),
             {
-                "fields": ("client_id", "client_secret", "_scope"),
+                "fields": (
+                    "client_id",
+                    "client_secret",
+                    "_scope",
+                ),
             },
         ],
         [
@@ -90,8 +92,14 @@ class ClientAdmin(admin.ModelAdmin):
         ],
     ]
     form = ClientForm
-    list_display = ["name", "client_id", "response_type_descriptions", "date_created"]
-    readonly_fields = ["date_created"]
+    list_display = [
+        "name",
+        "client_id",
+        "response_type_descriptions",
+        "date_created",
+        "client_secret",
+    ]
+    readonly_fields = ["date_created", "client_secret"]
     search_fields = ["name"]
     raw_id_fields = ["owner"]
 
@@ -107,6 +115,10 @@ class CodeAdmin(admin.ModelAdmin):
 @admin.register(Token)
 class TokenAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
+    readonly_fields = [
+        "access_token",
+        "refresh_token",
+    ]
 
     def has_add_permission(self, request):
         return False

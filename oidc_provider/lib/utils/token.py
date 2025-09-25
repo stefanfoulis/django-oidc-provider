@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import time
 import uuid
 from datetime import timedelta
@@ -16,6 +17,8 @@ from oidc_provider.lib.utils.common import run_processing_hook
 from oidc_provider.models import Code
 from oidc_provider.models import RSAKey
 from oidc_provider.models import Token
+
+logger = logging.getLogger(__name__)
 
 # Cache for loaded RSA keys to avoid repeated PEM parsing
 # Cache is automatically cleaned of stale entries (keys no longer in DB)
@@ -299,12 +302,24 @@ def _get_token(raw_token, fieldname, client=None):
     token = qs.get(**{hash_fieldname: hashed_token})
     if getattr(token, fieldname) != raw_token:
         # Suspicious. Bad hash in database or hash collision attack.
+        logger.warning(
+            "WARNING: Token hash collision or database integrity error detected for token id %s",
+            token.id,
+        )
         raise Token.DoesNotExist("%s matching query does not exist." % Token._meta.object_name)
     return token
 
 
 def get_by_access_token(access_token, client=None):
     return _get_token(raw_token=access_token, fieldname="access_token", client=client)
+
+
+def default_get_valid_access_token(access_token, client, request):
+    return get_by_access_token(access_token=access_token, client=client)
+
+
+def get_valid_access_token(**kwargs):
+    return settings.get("OIDC_GET_VALID_ACCESS_TOKEN", import_str=True)(**kwargs)
 
 
 def get_by_refresh_token(refresh_token, client=None):
